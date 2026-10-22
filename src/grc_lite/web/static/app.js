@@ -1,6 +1,8 @@
 import { $, h, api } from "./ui.js";
 import { renderMarkdown } from "./md.js";
 import { renderCsv } from "./csv.js";
+import { searchTab } from "./search.js";
+import { coverageTab } from "./coverage.js";
 import { exportTab } from "./export.js";
 import { KINDS, LABELS, on, problemsTab, recordsTab, reportTab, store } from "./records.js";
 
@@ -21,6 +23,37 @@ function drawFiles() {
   }
 }
 
+const today = () => new Date().toLocaleDateString("sv-SE"); // local date as YYYY-MM-DD
+
+async function addEvidence(fields) {
+  if (store.locked) { alert("This level is submitted and locked."); return; }
+  try {
+    const made = await api("/api/records/evidence", { method: "POST", body: JSON.stringify({ fields }) });
+    store.problems = made.problems;
+    store.evidence.push(made.record);
+    problemCount();
+    await showTab("evidence", made.record.id);
+  } catch (e) {
+    alert("Could not add the evidence: " + e.message);
+  }
+}
+
+function selectedText() {
+  const sel = getSelection();
+  if (!sel || sel.isCollapsed || !$("view").contains(sel.anchorNode)) return "";
+  return sel.toString().trim().slice(0, 1000);
+}
+
+function viewToolbar(path, kind) {
+  const button = h("button", { disabled: "", onmousedown: (e) => e.preventDefault(), onclick: () => {
+    const text = selectedText();
+    if (text) addEvidence({ date: today(), source: path, type: kind === "csv" ? "system" : "document", shows: `"${text}"` });
+  } }, "Add selected text as evidence");
+  const update = () => { button.disabled = !selectedText() || store.locked; };
+  document.addEventListener("selectionchange", update);
+  return h("div", { class: "viewbar" }, button, h("span", { class: "count" }, "Select text in the file, then add it as an evidence entry."));
+}
+
 async function openFile(path) {
   await notesPanel.flush();
   current = path;
@@ -28,9 +61,13 @@ async function openFile(path) {
   const view = $("view");
   try {
     const file = await api("/api/file?path=" + encodeURIComponent(path));
-    if (file.kind === "md") view.replaceChildren(renderMarkdown(file.text));
-    else if (file.kind === "csv") view.replaceChildren(renderCsv(file.text));
-    else view.replaceChildren(h("pre", { class: "plain" }, file.text));
+    const content = file.kind === "md" ? renderMarkdown(file.text)
+      : file.kind === "csv" ? renderCsv(file.text, { onCite: ({ query, shown, total }) => addEvidence({
+        date: today(), source: path, type: "system",
+        shows: query ? `${shown} of ${total} rows in ${path} contain "${query}".` : `${total} rows in ${path}.`,
+        reliability: "Counted in the study app from the file as given." }) })
+      : h("pre", { class: "plain" }, file.text);
+    view.replaceChildren(viewToolbar(path, file.kind), content);
     view.scrollTop = 0;
   } catch (e) {
     view.replaceChildren(h("p", { class: "empty" }, "Could not open this file."));
@@ -95,11 +132,18 @@ const notesPanel = (() => {
 const TABS = [
   { id: "notes", label: "Notes", render: async () => notesPanel.element() },
   ...KINDS.map((kind) => ({ id: kind, label: LABELS[kind], render: () => recordsTab(kind) })),
+  { id: "search", label: "Search", render: async () => searchTab(nav) },
+  { id: "coverage", label: "Coverage", render: () => coverageTab(nav) },
   { id: "report", label: "Report", render: reportTab },
   { id: "export", label: "Export", render: () => exportTab(() => showTab("export")) },
   { id: "problems", label: "Problems", render: problemsTab },
 ];
 let activeTab = "notes";
+const nav = {
+  openFile: (path) => openFile(path),
+  openNotes: async (path) => { await openFile(path); await showTab("notes"); },
+  openRecord: (kind, id) => showTab(kind, id),
+};
 
 async function showTab(id, focusId) {
   activeTab = id;
