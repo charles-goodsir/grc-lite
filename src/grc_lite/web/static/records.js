@@ -4,13 +4,14 @@
 import { h, api, debounce } from "./ui.js";
 import { renderMarkdown } from "./md.js";
 
-export const store = { locked: false, meta: { name: "", scale: 3, slots: 8, counters: {} }, criteria: [], evidence: [], findings: [], requests: [], risks: [], problems: [] };
+export const store = { grading: { graded: false, grading: null, tags: [], revealed: false }, locked: false, meta: { name: "", scale: 3, slots: 8, counters: {} }, criteria: [], evidence: [], findings: [], requests: [], risks: [], problems: [] };
 
 let listeners = { problems: () => {}, goto: () => {}, rerender: () => {}, locked: () => {} };
 export const on = (handlers) => { listeners = { ...listeners, ...handlers }; };
 
 export async function loadRecords() {
   Object.assign(store, await api("/api/records"));
+  store.grading = await api("/api/grading");
   listeners.problems();
   listeners.locked();
 }
@@ -169,6 +170,13 @@ const TIPS = {
 // "criteria: Field required" reads better as "criteria is empty"
 const friendly = (message) => message.replace(/^(\w+): Field required$/, "$1 is empty").replace(/^Value error, /, "");
 
+// what the grader wrote about a record, once a grading has been imported
+const SHEETS = { criteria: ["Criteria"], evidence: ["Evidence"], findings: ["Candidates", "Findings"] };
+function graderNotes(kind, id) {
+  const notes = store.grading.grading?.notes || [];
+  return notes.filter((n) => n.id === id && (SHEETS[kind] || []).includes(n.sheet));
+}
+
 function missingFor(id) {
   return store.problems.filter((p) => p.id === id).map((p) => friendly(p.message));
 }
@@ -256,7 +264,9 @@ function card(kind, record) {
   const missing = h("div", { class: "missing" });
   const del = h("button", { class: "danger", onclick: () => remove() }, "Delete");
   del.hidden = store.locked;
-  const root = h("div", { class: "card", id: `rec-${record.id}` }, h("h4", {}, badge, del), missing);
+  const graded = graderNotes(kind, record.id).map((n) =>
+    h("div", { class: "grader" }, h("strong", {}, `Grader${n.key_rating ? " (key: " + n.key_rating + ")" : ""}: `), n.note));
+  const root = h("div", { class: "card", id: `rec-${record.id}` }, h("h4", {}, badge, del), missing, ...graded);
 
   function refresh() {
     root.className = "card " + form.tone(state);

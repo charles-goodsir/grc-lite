@@ -107,3 +107,14 @@ td.cell { text-align: center; color: var(--accent); }
 .field > .tipbtn { margin-left: 6px; padding: 0 6px; font-size: 11px; line-height: 16px; border-radius: 50%; }
 .field label { display: inline-block; }
 .tip { font-size: 12.5px; color: var(--ink); background: var(--accent-soft); border-radius: 4px; padding: 6px 8px; margin: 4px 0; }
+/* grading */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin: 0 0 18px; }
+.stat { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--surface); }
+.stat .num { font-size: 22px; font-weight: 700; color: var(--ink); }
+.stat .lab { font-size: 12px; color: var(--muted); }
+.outcome { font-weight: 600; }
+.outcome.caught { color: #2a9d6f; } .outcome.missed { color: var(--danger); } .outcome.rated_low, .outcome.rated_high { color: var(--warn); }
+.chip { font-size: 12px; padding: 2px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface-2); }
+.grader { font-size: 13px; background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; padding: 6px 8px; margin: 4px 0 6px; overflow-wrap: anywhere; }
+.section table { font-size: 13px; }
+.section th, .section td { border: 1px solid var(--line); padding: 4px 8px; text-align: left; vertical-align: top; }
