@@ -1,11 +1,13 @@
-"""Command line interface: `grc init`, `grc validate` and `grc report`."""
+"""Command line interface: `grc init`, `grc validate`, `grc report` and `grc import-notes`."""
 
 from datetime import date
 from pathlib import Path
 from typing import Annotated
 
 import typer
+import yaml
 
+from grc_lite.importer import import_notes
 from grc_lite.loader import AssessmentError, load
 from grc_lite.report import build_report
 
@@ -101,3 +103,32 @@ def report(
         typer.echo(f"Wrote {output}")
     else:
         typer.echo(text, nl=False)
+
+
+def _dump(data) -> str:
+    return yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=100)
+
+
+@app.command("import-notes")
+def import_notes_command(
+    notes: Annotated[Path, typer.Argument(help="notes.md downloaded from the notes tool")],
+    folder: Annotated[Path, typer.Argument(help="New assessment folder to create")],
+    name: Annotated[str, typer.Option(help="Assessment name")] = "Imported assessment",
+):
+    """Convert a notes.md export into an assessment folder, then validate it."""
+    if folder.exists() and any(folder.iterdir()):
+        typer.echo(f"error: {folder} is not empty", err=True)
+        raise typer.Exit(1)
+    files, scale, warnings = import_notes(notes.read_text())
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / "assessment.yaml").write_text(_dump({"name": name, "scale": scale}))
+    for filename, items in files.items():
+        (folder / f"{filename}.yaml").write_text(_dump(items))
+    for warning in warnings:
+        typer.echo(f"warning: {warning}", err=True)
+    typer.echo(
+        f"Imported {len(files['criteria'])} criteria, {len(files['evidence'])} evidence, "
+        f"{len(files['findings'])} findings into {folder}"
+    )
+    _load_or_exit(folder)
+    typer.echo("Validation passed.")
