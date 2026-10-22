@@ -12,10 +12,11 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from grc_lite.coverage import coverage
 from grc_lite.importer import file_notes
 from grc_lite.loader import AssessmentError, load
 from grc_lite.report import build_report
-from grc_lite.web import export, files, records
+from grc_lite.web import export, files, records, search
 
 STATIC = Path(__file__).parent / "static"
 CSP = (
@@ -172,6 +173,18 @@ def create_app(level: Path, assessment: Path, token: str | None = None) -> FastA
             return {"markdown": build_report(load(assessment), date.today()), "problems": []}
         except AssessmentError:
             return {"markdown": None, "problems": records.problems(assessment)}
+
+    @app.get("/api/search")
+    def find(q: str):
+        return guarded(lambda: search.search(level, assessment, q))
+
+    @app.get("/api/coverage")
+    def coverage_report():
+        def run():
+            data = {kind: records.read_records(assessment, kind) for kind in records.KINDS}
+            return coverage(data, date.today())
+
+        return guarded(run)
 
     @app.post("/api/submit")
     def submit():
