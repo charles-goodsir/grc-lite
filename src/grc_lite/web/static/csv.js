@@ -24,11 +24,11 @@ export function parseCsv(text) {
 
 const ROW_LIMIT = 2000;
 
-export function renderCsv(text) {
+export function renderCsv(text, options = {}) {
   const [head, ...body] = parseCsv(text);
   const root = h("div", { class: "data" });
   if (!head) { root.append(h("p", { class: "empty" }, "Empty file.")); return root; }
-  const state = { query: "", sortCol: -1, dir: 1 };
+  const state = { query: "", sortCol: -1, dir: 1, shown: 0 };
   const count = h("span", { class: "count" });
   const wrap = h("div", { class: "scroll" });
   const input = h("input", { type: "search", placeholder: "Filter rows", "aria-label": "Filter rows" });
@@ -44,6 +44,7 @@ export function renderCsv(text) {
         return (!isNaN(nx) && !isNaN(ny) ? nx - ny : x.localeCompare(y)) * state.dir;
       });
     }
+    state.shown = rows.length;
     count.textContent = `${rows.length} of ${body.length} rows` + (rows.length > ROW_LIMIT ? ` (first ${ROW_LIMIT} shown)` : "");
     const tr = h("tr");
     head.forEach((name, col) => {
@@ -61,7 +62,8 @@ export function renderCsv(text) {
     draw();
   }
   input.addEventListener("input", () => { state.query = input.value; draw(); });
-  root.append(h("div", { class: "bar" }, input, count), wrap);
+  const cite = h("button", { title: "Records this filter and the row count as a new evidence entry", onclick: () => options.onCite && options.onCite({ query: state.query.trim(), shown: state.shown, total: body.length }) }, "Cite this view as evidence");
+  root.append(h("div", { class: "bar" }, input, count, options.onCite ? cite : ""), wrap);
   draw();
   return root;
 }

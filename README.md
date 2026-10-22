@@ -29,6 +29,12 @@ Opens a local page (`http://127.0.0.1:8765`) with your level's files on the left
 
 Everything is saved as you type to the same YAML files the CLI reads, in `my-work/assessment/` (or `--assessment PATH`), so `grc validate`, `grc report` and Git work on what you log. IDs are never reused after a deletion, because the highest number issued per prefix is kept in `assessment.yaml`. The app writes the files in a fixed layout, so comments from the `grc init` templates are dropped after the first save. Two browser tabs editing the same assessment is not supported: the last save wins.
 
+- **Study helpers:**
+  - **Search** across the files you can see, your notes and your records. It never reads `answer-key*` files, `graded/` or anything outside the level.
+  - **Coverage** lists where the assessment is thin: rules with no evidence or not tested, gaps no live finding covers, selected findings on weaker evidence, undecided candidates, evidence nothing uses, and requests still waiting, with a rules-by-evidence grid.
+  - **Cite this view** (on a CSV) records the filter and the row count as a new evidence entry, so "5 of 31 rows" comes from a saved count.
+  - **Add selected text as evidence** quotes what you highlighted in a file, with its source.
+  - A **?** beside the main fields shows a short reminder from the playbook.
 - **Export:** the submission, the report (Markdown or a printable HTML page), an Excel workbook (`pip install 'grc-lite[xlsx]'`), a ZIP backup, and one CSV per tab. Spreadsheet cells that start with `=`, `+`, `-` or `@` are saved as text, so a note cannot run as a formula when you open the file.
 - **Import:** reads a notes-tool `notes.md` into an empty assessment, including your per-file notes. It lists anything it could not map and refuses to overwrite existing records.
 - **Submit and lock:** writes `submission.md` (the notes-tool format, so `grc import-notes` reads it back), records its SHA-256 in `submitted.yaml`, and turns editing off. You then send the file to be reviewed. The Export tab shows whether the file and your records still match what you submitted. The lock is a commitment to yourself, not a security control: delete `submitted.yaml` to reopen the level.

@@ -144,6 +144,28 @@ const FORMS = {
   },
 };
 
+// Short reminders from the playbook, shown when you press the ? beside a field.
+const TIPS = {
+  "criteria.source": "Where the rule comes from: the client's own policy, with the file and rule number.",
+  "criteria.rule": "Quote the rule as written, so anyone can check it.",
+  "criteria.evidence_needed": "What would prove this rule is followed, or not? If it is not in the data room, ask for it and log a request.",
+  "criteria.result": "meets, gap or can't test. If evidence is missing, say can't test and log a request.",
+  "evidence.shows": "Facts only: what it shows, with numbers. Opinions belong in your findings.",
+  "evidence.reliability": "How far can you trust it? For example: exported by the client, not independently verified.",
+  "findings.title": "One issue only.",
+  "findings.strength": "Strong means counts, several files, and the rule quoted.",
+  "findings.criteria": "Criteria: what should be happening (a policy rule, a standard control, a law).",
+  "findings.condition": "What the evidence shows, with numbers and the evidence ID.",
+  "findings.cause": "Why it happened: no process, no owner, no automation. Optional.",
+  "findings.consequence": "Why it matters, in one or two sentences.",
+  "findings.action": "The fix, with an owner and a date. One fix.",
+  "findings.likelihood": "Rating = likelihood x impact. Scale 1-3: 7-9 High, 4-6 Medium, 1-3 Low. Scale 1-5: 20-25 Critical, 13-19 High, 6-12 Medium, 1-5 Low.",
+  "findings.impact": "Rating = likelihood x impact. Scale 1-3: 7-9 High, 4-6 Medium, 1-3 Low. Scale 1-5: 20-25 Critical, 13-19 High, 6-12 Medium, 1-5 Low.",
+  "findings.control_ref": "A control number such as an Annex A reference, if the level asks for one. Optional.",
+  "requests.received": "Leave empty while you are still waiting. The report lists outstanding requests.",
+  "risks.treatment": "Mitigate, accept, transfer or avoid.",
+};
+
 // "criteria: Field required" reads better as "criteria is empty"
 const friendly = (message) => message.replace(/^(\w+): Field required$/, "$1 is empty").replace(/^Value error, /, "");
 
@@ -166,6 +188,11 @@ function optionLabel(kind, record) {
 
 function control(kind, record, [key, label, type], state, changed) {
   const wrap = h("div", { class: "field" }, h("label", {}, label));
+  const tip = TIPS[`${kind}.${key}`];
+  if (tip) {
+    const note = h("div", { class: "tip", hidden: "" }, tip);
+    wrap.append(h("button", { type: "button", class: "tipbtn", "aria-label": "Help for " + label, title: "Help", onclick: () => { note.hidden = !note.hidden; } }, "?"), note);
+  }
   const set = (value) => { state[key] = value; changed(key); };
   let input;
   if (typeof type === "object") {
