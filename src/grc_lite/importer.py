@@ -186,3 +186,8 @@ def import_notes(text: str) -> tuple[dict[str, list[dict]], int, list[str]]:
     findings, scale = _findings(sections, criteria, warnings)
     files = {"criteria": criteria, "evidence": evidence, "findings": findings}
     return files, scale, warnings
+
+
+# the grading import reads the same Markdown layout
+split_sections = _sections
+read_table = _table
