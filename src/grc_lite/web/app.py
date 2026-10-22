@@ -7,14 +7,15 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from grc_lite.importer import file_notes
 from grc_lite.loader import AssessmentError, load
 from grc_lite.report import build_report
-from grc_lite.web import files, records
+from grc_lite.web import export, files, records
 
 STATIC = Path(__file__).parent / "static"
 CSP = (
@@ -38,6 +39,11 @@ class RecordIn(BaseModel):
     fields: dict[str, Any] = {}
 
 
+class ImportIn(BaseModel):
+    text: str = Field(max_length=files.MAX_BYTES)
+    name: str = Field(default="", max_length=200)
+
+
 class MetaIn(BaseModel):
     name: str = Field(max_length=200)
     scale: int
@@ -54,6 +60,8 @@ def create_app(level: Path, assessment: Path, token: str | None = None) -> FastA
             sent = request.headers.get("x-grc-token", "").encode()
             if not secrets.compare_digest(sent, token.encode()):
                 return JSONResponse({"detail": "missing or wrong token"}, 401)
+            if request.method not in ("GET", "HEAD") and export.is_locked(assessment):
+                return JSONResponse({"detail": "This level is submitted and locked"}, 423)
             if request.method not in ("GET", "HEAD") and not request.headers.get(
                 "content-type", ""
             ).startswith("application/json"):
@@ -123,12 +131,15 @@ def create_app(level: Path, assessment: Path, token: str | None = None) -> FastA
     def guarded(action):
         try:
             return action()
+        except records.ConflictError as e:
+            raise HTTPException(409, str(e)) from None
         except records.RecordError as e:
             raise HTTPException(422, str(e)) from None
 
     @app.get("/api/records")
     def all_records():
-        return guarded(lambda: records.snapshot(assessment))
+        data = guarded(lambda: records.snapshot(assessment))
+        return {**data, "locked": export.is_locked(assessment)}
 
     @app.post("/api/records/{kind}")
     def create_record(kind: str, body: RecordIn):
@@ -161,6 +172,64 @@ def create_app(level: Path, assessment: Path, token: str | None = None) -> FastA
             return {"markdown": build_report(load(assessment), date.today()), "problems": []}
         except AssessmentError:
             return {"markdown": None, "problems": records.problems(assessment)}
+
+    @app.post("/api/submit")
+    def submit():
+        return guarded(lambda: export.submit(level, assessment))
+
+    @app.get("/api/submission")
+    def submission():
+        return export.submission_status(level, assessment)
+
+    @app.post("/api/import-notes")
+    def import_notes(body: ImportIn):
+        def run():
+            done = records.import_notes(assessment, body.text, body.name)
+            moved = 0
+            for title, text in file_notes(body.text).items():
+                rel = (
+                    title.split("/", 1)[1] if "/" in title else title
+                )  # drop the notes tool's folder name
+                if (
+                    files.resolve_visible(level, rel)
+                    and not files.notes_path(assessment, rel).exists()
+                ):
+                    target = files.notes_path(assessment, rel)
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                    target.write_text(text)
+                    moved += 1
+            return {**done, "notes_imported": moved}
+
+        return guarded(run)
+
+    EXPORTS = {
+        "submission.md": ("text/markdown", lambda: export.submission_md(level, assessment).encode()),
+        "report.md": ("text/markdown", lambda: _report_markdown().encode()),
+        "report.html": ("text/html", lambda: export.report_html(
+            records.read_meta(assessment).name, _report_markdown())),
+        "records.zip": ("application/zip", lambda: export.zip_bytes(assessment)),
+        "records.xlsx": ("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                         lambda: export.xlsx_bytes(assessment)),
+        **{f"{kind}.csv": ("text/csv", lambda kind=kind: export.csv_bytes(assessment, kind))
+           for kind in records.KINDS},
+    }  # fmt: skip
+
+    def _report_markdown() -> str:
+        if records.problems(assessment):
+            raise records.RecordError("fix the problems before exporting the report")
+        try:
+            return build_report(load(assessment), date.today())
+        except AssessmentError:
+            raise records.RecordError("nothing to report yet") from None
+
+    @app.get("/api/export/{name}")
+    def export_file(name: str):
+        if name not in EXPORTS:
+            raise HTTPException(404, "no such export")
+        media, build = EXPORTS[name]
+        body = guarded(build)
+        return Response(body, media_type=media,
+                        headers={"Content-Disposition": f'attachment; filename="{name}"'})  # fmt: skip
 
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     return app

@@ -20,7 +20,8 @@ dependencies = [
 grc = "grc_lite.cli:app"
 
 [project.optional-dependencies]
-dev = ["httpx", "pytest", "ruff"]
+xlsx = ["openpyxl>=3.1"]
+dev = ["httpx", "openpyxl>=3.1", "pytest", "ruff"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/grc_lite"]

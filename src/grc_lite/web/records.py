@@ -43,6 +43,10 @@ class RecordError(ValueError):
     """The request itself is wrong (unknown field, too long), as opposed to incomplete data."""
 
 
+class ConflictError(RecordError):
+    """The request is fine but the assessment is not in a state that allows it."""
+
+
 def _dump(data: Any) -> str:
     return yaml.safe_dump(data, sort_keys=False, allow_unicode=True, width=100)
 
@@ -214,3 +218,30 @@ def set_meta(assessment: Path, name: str, scale: int, slots: int) -> dict:
             if changed:
                 _write(assessment / f"{kind}.yaml", items)
     return snapshot(assessment)
+
+
+def import_notes(assessment: Path, text: str, name: str) -> dict:
+    """Fill an empty assessment from a notes-tool export. Anything it cannot map is reported."""
+    from grc_lite.importer import import_notes as convert
+
+    with LOCK:
+        if any(read_records(assessment, kind) for kind in KINDS):
+            raise ConflictError("this assessment already has records; import into an empty one")
+        converted, scale, warnings = convert(text)
+        meta = Meta(name=(name or "Imported assessment")[:200], scale=scale)
+        written: dict[str, list[dict]] = {}
+        for kind, items in converted.items():
+            prefix = KINDS[kind][1]
+            cleaned = []
+            for item in items:
+                ident = str(item.get("id", ""))
+                fields = {k: v for k, v in item.items() if k != "id"}
+                cleaned.append({"id": ident, **clean(kind, fields)})
+                match = re.fullmatch(rf"{prefix}-(\d+)", ident)
+                if match:
+                    meta.counters[prefix] = max(meta.counters.get(prefix, 0), int(match.group(1)))
+            written[kind] = cleaned
+        write_meta(assessment, meta)
+        for kind, items in written.items():
+            _write(assessment / f"{kind}.yaml", items)
+    return {**snapshot(assessment), "warnings": warnings}
