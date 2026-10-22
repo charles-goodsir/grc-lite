@@ -7,7 +7,7 @@ warning, so `grc validate` shows what still needs fixing instead of the importer
 import re
 
 CELL_SPLIT = re.compile(r"(?<!\\)\|")
-EV_REF = re.compile(r"\bEv-?\s*0*(\d+)", re.IGNORECASE)
+EV_REF = re.compile(r"\bEv?-?\s*0*(\d+)\b", re.IGNORECASE)
 CRITERION_REF = re.compile(r"\bC-\d+\b")
 RULE_REF = re.compile(r"[Rr]ule\s+(\d+)\W+([\w.-]+\.\w+)")
 RATING = re.compile(
@@ -27,6 +27,18 @@ def _sections(text: str) -> dict[str, list[str]]:
         elif current:
             sections[current].append(line)
     return sections
+
+
+KNOWN_SECTIONS = {"Criteria sheet", "Evidence log", "Candidate findings", "Findings"}
+
+
+def file_notes(text: str) -> dict[str, str]:
+    """Notes typed against individual files, keyed by the path the notes tool recorded."""
+    return {
+        title: "\n".join(body).strip()
+        for title, body in _sections(text).items()
+        if title not in KNOWN_SECTIONS and "".join(body).strip()
+    }
 
 
 def _table(lines: list[str]) -> list[list[str]]:
