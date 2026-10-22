@@ -36,7 +36,7 @@ def build_report(a: Assessment, today: date) -> str:
     )
     out = [f"# {a.meta.name}", "", f"Generated {today.isoformat()} | risk scale 1-{scale}", ""]
 
-    out += ["## Summary", "", "**Criteria by result**", ""]
+    out += ["## Overview", "", "**Criteria by result**", ""]
     results = Counter(c.result for c in a.criteria)
     out += _table(["Result", "Count"], [[r.value, results[r]] for r in Result])
     out += ["**Findings by status**", ""]
