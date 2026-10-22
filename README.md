@@ -1,6 +1,6 @@
 # grc-lite
 
-A small compliance-as-code tool for gap assessments. Criteria, evidence and findings live as YAML files in Git, a CLI validates them, and `grc report` generates a Markdown report from them. It is framework-agnostic: a criterion's `source` can be any standard, policy or contract clause.
+A small compliance-as-code tool for gap assessments. Criteria, evidence, findings, evidence requests and risks live as YAML files in Git. A CLI validates them, generates a Markdown report, imports from the assessor notes tool, and collects evidence from Entra ID. It is framework-agnostic: a criterion's `source` can be any standard, policy or contract clause, so it works for any gap assessment.
 
 **Fictional data only.** Nothing in this repo is real client data, and it never should be.
 
@@ -14,6 +14,7 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 .venv/bin/grc validate data/example   # a fictional worked example
 .venv/bin/grc report data/example -o report.md  # Markdown report (omit -o to print)
 .venv/bin/grc import-notes notes.md my-assessment  # convert a notes-tool export, then validate
+.venv/bin/grc collect leavers my-assessment --hr leavers.csv --users entra-users.json
 ```
 
 ## An assessment folder
@@ -26,18 +27,20 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 
 Rating = likelihood x impact. Scale 3: 7-9 High, 4-6 Medium, 1-3 Low. Scale 5: 20-25 Critical, 13-19 High, 6-12 Medium, 1-5 Low.
 
-`grc validate` checks field names and values, ID formats and uniqueness, that every evidence and criterion reference exists, that selected findings are complete, and that scores fit the scale. IDs should never be reused after deletion; that is not machine-checked yet.
+## What each command does
+- **`grc validate`** checks field names and values (unknown keys are errors, so a typo is caught), ID formats and uniqueness, that every evidence, criterion and finding reference exists, that selected findings are complete, and that scores fit the scale. It lists every problem with the file and ID.
+- **`grc report`** refuses to run on invalid data. The report has a summary (criteria by result, findings by status and rating), a candidate-versus-selected table, selected findings sorted by rating, criteria, evidence, a risk register, outstanding requests, and open items. Convert to HTML or PDF with a tool like pandoc.
+- **`grc import-notes`** only translates a notes-tool `notes.md`. Anything it cannot map (a finding whose criteria it cannot match to an ID, a missing section) is left empty and reported as a warning, then `grc validate` shows what still needs fixing.
+- **`grc collect`** reads Entra ID data, compares it to a rule, and adds an evidence entry (see below).
 
 ## Evidence collectors
-`grc collect` reads Entra ID data, compares it to a rule, and adds an evidence entry to the assessment.
-
 ```bash
 .venv/bin/grc collect leavers my-assessment --hr leavers.csv --users entra-users.json --criterion C-01
 .venv/bin/grc collect mfa my-assessment --registrations mfa.json --users entra-users.json --scope admins
 .venv/bin/grc collect leavers my-assessment --hr leavers.csv --live   # read straight from Microsoft Graph
 ```
 
-- **leavers:** each person in the HR CSV (`upn`, `leave_date`) must have a disabled account within `--max-days` (default 1) of their leave date. Only the current state is visible, so it cannot tell whether an account that is disabled now was disabled late.
+- **leavers:** each person in the HR CSV (`upn`, `leave_date`) must have a disabled account within `--max-days` (default 1) of their leave date.
 - **mfa:** every enabled account in `--scope` (`admins` or `all`) has MFA registered. Pass `--users` to skip disabled accounts.
 - **Inputs:** file mode takes Graph JSON (`{"value": [...]}`) or, for users, a CSV with `userPrincipalName` and `accountEnabled` columns. `--live` takes a token from your signed-in `az` session and needs read access to users (`User.Read.All`) and the MFA registration report (`AuditLog.Read.All`, an Entra reports role).
 
@@ -46,7 +49,23 @@ What it protects:
 - Live mode is GET-only, sends the token only to `graph.microsoft.com`, refuses a paging link or redirect that points elsewhere, and keeps the token and request headers out of every error message.
 - It never edits `criteria.yaml`. It prints the result it suggests and you decide.
 
-Status: tested against fixtures with made-up `acme.example` addresses. **Live mode has not been run against a real tenant**, so the Graph response shapes follow the documentation and are unproved until someone does.
+## How it is built
+```
+src/grc_lite/
+  models.py          Pydantic v2 data model: criteria, evidence, findings, requests, risks, rating
+  loader.py          reads the YAML files, reports every error, checks cross-references
+  report.py          renders a loaded assessment as Markdown
+  importer.py        converts a notes-tool export into assessment YAML
+  cli.py             Typer commands: init, validate, report, import-notes, collect
+  collectors/
+    compare.py       pure leavers and MFA comparisons (no I/O)
+    sources.py       reads Graph JSON, users CSV and the HR leavers CSV
+    graph.py         read-only Microsoft Graph client on the standard library
+    record.py        appends the evidence entry and writes the private detail file
+tests/               pytest, including a golden-file test of the example report
+data/example/        a fictional worked example
+```
+Dependencies are Pydantic, PyYAML and Typer. Everything else is the standard library.
 
 ## CI
 Every PR and every push to `main` runs six checks, and all six are required before merge (admins included):
@@ -58,23 +77,34 @@ Every PR and every push to `main` runs six checks, and all six are required befo
 
 Actions are pinned to commit SHAs, the gitleaks binary is checksum-verified, and Dependabot proposes updates weekly.
 
-Each control was proved by a throwaway PR that should fail only its own check, then closed unmerged: a broken golden test failed `test`, an unused import failed `lint`, a pinned `jinja2==3.1.2` failed `audit`, and a fake AWS key failed `secrets`. The first secret proof exposed a bug: the scan covered every branch, so one leak failed unrelated PRs. It is now limited to the checked-out history, and a second pair of PRs (one with a fake key, one harmless) showed only the key PR going red.
+Each control was proved by a throwaway PR that should fail only its own check, then closed unmerged: a broken golden test failed `test`, an unused import failed `lint`, a pinned `jinja2==3.1.2` failed `audit`, and a fake AWS key failed `secrets`. The collector controls were proved by breaking each one locally and watching its test fail.
+
+## Problems hit
+- **The secret scan scanned every branch.** The first proof showed `secrets` red on three PRs with no secret in them, because `gitleaks git .` scans every ref the checkout fetches. A fake key on one branch failed everything. It is now limited to the checked-out history (`--log-opts="HEAD"`), and a second pair of PRs (one with a fake key, one harmless) showed only the key PR going red.
+- **The importer said "Validation passed" on an export with no tables.** It now warns about each missing section.
+- **A real export had a typo in a file name** (`suplier-policy`), which the "Rule N, file" matching could not resolve. The importer now also matches a finding's quoted rule text against the criteria.
+
+## Known shortcuts
+- IDs should never be reused after deletion. That is not machine-checked, because the tool keeps no history of deleted IDs.
+- **Live Graph mode has not been run against a real tenant.** It is tested against fixtures with made-up `acme.example` addresses, so the response shapes follow the documentation and are unproved until someone runs it.
+- The leavers check sees only the current state, so it cannot tell whether an account that is disabled now was disabled late.
+- The importer drops any free text in the notes tool's "Ev # received" column beyond the evidence number, and only understands that tool's format. The request log and risk register are not in that export, so they are written by hand.
+- Azure resource checks, a CSV import and HTML or PDF output were not built.
+
+## Teardown
+No cloud resources: nothing is deployed, nothing costs money, and no budget alert is needed. The collectors read an existing tenant using your own `az` session and store no credentials.
 
 ## Status
-Phases 1-5 done: data model, validation, `grc init`, `grc validate`, `grc report`, CI, request log, risk register, `grc import-notes`, `grc collect`.
-
-`grc import-notes` only translates: anything it cannot map (a finding whose criteria it cannot match to an ID, a missing section) is left empty and reported as a warning, then `grc validate` shows what still needs fixing. Request log and risk register are not in the notes tool's export, so they are written by hand.
-
-The report has a summary (criteria by result, findings by status and rating), a candidate-versus-selected table, selected findings sorted by rating, criteria, evidence, and open items. It refuses to run on invalid data. Convert to HTML or PDF with a tool like pandoc.
-
-## Planned phases
-2. ~~`grc report`~~ done
-3. ~~CI: tests, lint, dependency and secret scanning~~ done
-4. ~~Import from the notes tool, request log, risk register~~ done
-5. ~~Evidence collectors for Entra~~ done (Azure resource checks not built)
+Complete: five phases built and merged through pull requests into a protected `main`.
+1. Data model, validation, `grc validate`, `grc init`
+2. `grc report`
+3. CI on every PR, with each control proved by a failing case
+4. Request log, risk register, `grc import-notes`
+5. Entra evidence collectors
 
 ## Development
 ```bash
 .venv/bin/pytest
 .venv/bin/ruff check .
+.venv/bin/ruff format --check .
 ```
