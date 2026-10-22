@@ -1,0 +1,27 @@
+- id: F-01
+  title: Leavers keep active accounts after their leaving date
+  status: selected
+  strength: strong
+  strength_reason: Two independent system exports agree on the three accounts.
+  criteria: [C-01]
+  condition: Three of nine leavers (33%) still had enabled accounts 30 to 45 days after leaving.
+  cause: The IT team is told about leavers by email and there is no ticket to track removal.
+  consequence: Former staff could still sign in and reach company data.
+  action: Add account removal to the HR leaver workflow and review the leavers list weekly.
+  owner: IT Operations Manager
+  due: 2026-06-30
+  likelihood: 2
+  likelihood_reason: The accounts were enabled for over a month with no detection.
+  impact: 3
+  impact_reason: The accounts could reach customer data.
+  control_ref: AC-2
+- id: F-02
+  title: Access reviews may not be happening
+  status: candidate
+  strength: weak
+  strength_reason: No records requested yet; based on a comment in one interview.
+- id: F-03
+  title: Admin MFA not enforced
+  status: dropped
+  strength: strong
+  strength_reason: The MFA report shows all admin accounts enforced, so there is no gap.

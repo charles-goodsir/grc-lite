@@ -1,0 +1,17 @@
+- id: C-01
+  source: Acme Access Control Policy v1.2, section 4.1 (fictional)
+  rule: Leavers have all system access removed within 24 hours of their leaving date.
+  evidence_needed: HR leavers list and the account disable log for the same period.
+  evidence: [E-01, E-02]
+  result: gap
+- id: C-02
+  source: Acme Access Control Policy v1.2, section 5.3 (fictional)
+  rule: Multi-factor authentication is enforced for all administrator accounts.
+  evidence_needed: Identity provider MFA registration report for admin accounts.
+  evidence: [E-03]
+  result: meets
+- id: C-03
+  source: Acme Access Control Policy v1.2, section 6.2 (fictional)
+  rule: User access rights are reviewed at least every six months.
+  evidence_needed: Signed access review records for the last two review periods.
+  result: not tested
