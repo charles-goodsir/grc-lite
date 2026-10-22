@@ -41,3 +41,5 @@ The report has a summary (criteria by result, findings by status and rating), a 
 .venv/bin/pytest
 .venv/bin/ruff check .
 ```
+
+Proof PR whitespace only.
