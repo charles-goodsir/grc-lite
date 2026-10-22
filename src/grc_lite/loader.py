@@ -6,13 +6,14 @@ from pathlib import Path
 import yaml
 from pydantic import BaseModel, ValidationError
 
-from grc_lite.models import Criterion, Evidence, Finding, Meta, Request
+from grc_lite.models import Criterion, Evidence, Finding, Meta, Request, Risk
 
 FILES = {
     "criteria": Criterion,
     "evidence": Evidence,
     "findings": Finding,
     "requests": Request,
+    "risks": Risk,
 }
 
 
@@ -29,6 +30,7 @@ class Assessment:
     evidence: list[Evidence]
     findings: list[Finding]
     requests: list[Request] = field(default_factory=list)
+    risks: list[Risk] = field(default_factory=list)
 
 
 def _read(path: Path) -> object:
@@ -114,9 +116,19 @@ def _check_references(a: Assessment, errors: list[str]) -> None:
         for ref in f.criteria:
             if ref not in criteria_ids:
                 errors.append(f"findings.yaml: {f.id}: unknown criterion {ref}")
+    finding_ids = {f.id for f in a.findings}
+    for k in a.risks:
+        for ref in k.findings:
+            if ref not in finding_ids:
+                errors.append(f"risks.yaml: {k.id}: unknown finding {ref}")
+        for ref in k.criteria:
+            if ref not in criteria_ids:
+                errors.append(f"risks.yaml: {k.id}: unknown criterion {ref}")
+    scored = [("findings.yaml", f) for f in a.findings] + [("risks.yaml", k) for k in a.risks]
+    for filename, item in scored:
         for score in ("likelihood", "impact"):
-            value = getattr(f, score)
+            value = getattr(item, score)
             if value is not None and not 1 <= value <= a.meta.scale:
                 errors.append(
-                    f"findings.yaml: {f.id}: {score} {value} is outside the 1-{a.meta.scale} scale"
+                    f"{filename}: {item.id}: {score} {value} is outside the 1-{a.meta.scale} scale"
                 )

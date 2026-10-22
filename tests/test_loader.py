@@ -105,3 +105,28 @@ def test_requests_load_and_unknown_evidence_is_flagged(tmp_path):
 def test_request_received_before_asked_is_rejected(tmp_path):
     bad = REQUESTS.replace("}", ", received: 2026-01-01}")
     assert "received is before asked" in errors_for(write(tmp_path, requests=bad))[0]
+
+
+RISK = """- id: K-01
+  title: Leavers keep access
+  owner: IT
+  likelihood: 2
+  likelihood_reason: l
+  impact: 3
+  impact_reason: i
+  treatment: mitigate
+  findings: [F-01]
+"""
+
+
+def test_risk_with_unknown_links_and_bad_score(tmp_path):
+    bad = RISK.replace("impact: 3", "impact: 4") + "  criteria: [C-09]\n"
+    errs = errors_for(write(tmp_path, risks=bad))
+    assert "risks.yaml: K-01: unknown finding F-01" in errs
+    assert "risks.yaml: K-01: unknown criterion C-09" in errs
+    assert "risks.yaml: K-01: impact 4 is outside the 1-3 scale" in errs
+
+
+def test_valid_risk_loads(tmp_path):
+    folder = write(tmp_path, criteria=CRITERIA, evidence=EVIDENCE, findings=SELECTED, risks=RISK)
+    assert load(folder).risks[0].status.value == "open"

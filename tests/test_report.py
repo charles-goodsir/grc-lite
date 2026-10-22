@@ -68,3 +68,16 @@ def test_outstanding_requests_listed_and_received_ones_not(tmp_path):
     section = text.split("## Outstanding requests")[1].split("## Open items")[0]
     assert "Open one" in section
     assert "Done one" not in section
+
+
+def test_risk_register_sorted_by_rating(tmp_path):
+    def risk(id, likelihood, impact):
+        return (
+            f"- {{id: {id}, title: T{id}, owner: o, likelihood: {likelihood}, "
+            f"likelihood_reason: l, impact: {impact}, impact_reason: i, treatment: accept}}\n"
+        )
+
+    (tmp_path / "risks.yaml").write_text(risk("K-01", 1, 1) + risk("K-02", 3, 3))
+    text = build_report(load(tmp_path), TODAY)
+    assert text.index("| K-02 |") < text.index("| K-01 |")
+    assert "| K-02 | TK-02 | High |" in text

@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, StringConstraints, model_validator
 CriterionId = Annotated[str, StringConstraints(pattern=r"^C-\d+$")]
 EvidenceId = Annotated[str, StringConstraints(pattern=r"^E-\d+$")]
 FindingId = Annotated[str, StringConstraints(pattern=r"^F-\d+$")]
+RiskId = Annotated[str, StringConstraints(pattern=r"^K-\d+$")]
 RequestId = Annotated[str, StringConstraints(pattern=r"^R-\d+$")]
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
@@ -37,6 +38,19 @@ class Strength(str, Enum):
     STRONG = "strong"
     MEDIUM = "medium"
     WEAK = "weak"
+
+
+class Treatment(str, Enum):
+    MITIGATE = "mitigate"
+    ACCEPT = "accept"
+    TRANSFER = "transfer"
+    AVOID = "avoid"
+
+
+class RiskStatus(str, Enum):
+    OPEN = "open"
+    ACCEPTED = "accepted"
+    CLOSED = "closed"
 
 
 class _Base(BaseModel):
@@ -124,6 +138,21 @@ class Request(_Base):
     @property
     def outstanding(self) -> bool:
         return self.received is None
+
+
+class Risk(_Base):
+    id: RiskId
+    title: Text
+    description: str = ""
+    owner: Text
+    likelihood: int
+    likelihood_reason: Text
+    impact: int
+    impact_reason: Text
+    treatment: Treatment
+    status: RiskStatus = RiskStatus.OPEN
+    findings: list[FindingId] = []
+    criteria: list[CriterionId] = []
 
 
 class Meta(_Base):
