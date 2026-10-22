@@ -36,6 +36,7 @@ Everything is saved as you type to the same YAML files the CLI reads, in `my-wor
   - **Add selected text as evidence** quotes what you highlighted in a file, with its source.
   - A **?** beside the main fields shows a short reminder from the playbook.
 - **Grading:** after you submit and the level is reviewed, import the grading file (layout in [docs/grading-format.md](docs/grading-format.md)). The tab shows a scoreboard of planted gaps, the summary, what went well and what to do next time. The grader's notes appear on your own criteria, evidence and findings. Each miss and each "for next time" point goes in a mistake log with a tag you can change. Only then do the answer key and `graded/` files appear in the file list.
+- **Progress:** every level's status (not started, in progress, submitted, graded), planted gaps caught, ratings that were off, and your mistakes counted by tag across levels, so you can see which kind of error keeps coming back. It looks at the folders next to the one you serve, or at `--levels PATH`. For each it reads one file, `my-work/assessment/grading.yaml`, and only checks that `submitted.yaml` exists. It never opens another level's data room or answer key, does not follow links, and lists only real folders that hold `01-scope.md` or a `data-room`.
 - **Export:** the submission, the report (Markdown or a printable HTML page), an Excel workbook (`pip install 'grc-lite[xlsx]'`), a ZIP backup, and one CSV per tab. Spreadsheet cells that start with `=`, `+`, `-` or `@` are saved as text, so a note cannot run as a formula when you open the file.
 - **Import:** reads a notes-tool `notes.md` into an empty assessment, including your per-file notes. It lists anything it could not map and refuses to overwrite existing records.
 - **Submit and lock:** writes `submission.md` (the notes-tool format, so `grc import-notes` reads it back), records its SHA-256 in `submitted.yaml`, and turns editing off. You then send the file to be reviewed. The Export tab shows whether the file and your records still match what you submitted. The lock is a commitment to yourself, not a security control: delete `submitted.yaml` to reopen the level.
@@ -87,7 +88,7 @@ src/grc_lite/
   importer.py        converts a notes-tool export into assessment YAML
   cli.py             Typer commands: init, validate, report, import-notes, collect, serve
   grading.py         reads a grading file and builds the mistake log
-  web/               the local study app: app.py (server), files.py (path rules), records.py (saving records), grades.py (grading storage), static/ (page)
+  web/               the local study app: app.py (server), files.py (path rules), records.py (saving records), grades.py (grading storage), progress.py (across levels), static/ (page)
   collectors/
     compare.py       pure leavers and MFA comparisons (no I/O)
     sources.py       reads Graph JSON, users CSV and the HR leavers CSV

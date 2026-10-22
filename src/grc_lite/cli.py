@@ -265,6 +265,9 @@ def collect_mfa(
 def serve(
     level: Annotated[Path, typer.Argument(help="Level folder with the files to study")],
     assessment: Annotated[Path | None, typer.Option(help="Where your work is saved")] = None,
+    levels: Annotated[
+        Path | None, typer.Option(help="Folder holding all your levels, for Progress")
+    ] = None,
     port: Annotated[int, typer.Option(help="Port on 127.0.0.1")] = 8765,
     open_browser: Annotated[bool, typer.Option("--open/--no-open")] = True,
 ):
@@ -285,4 +288,6 @@ def serve(
     typer.echo(f"Your work is saved in {work}")
     if open_browser:
         threading.Timer(1.0, webbrowser.open, [url]).start()
-    uvicorn.run(create_app(level, work), host="127.0.0.1", port=port, log_level="warning")
+    uvicorn.run(
+        create_app(level, work, levels=levels), host="127.0.0.1", port=port, log_level="warning"
+    )
