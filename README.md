@@ -1,6 +1,6 @@
 # grc-lite
 
-A small compliance-as-code tool for gap assessments. Criteria, evidence, findings, evidence requests and risks live as YAML files in Git. A CLI validates them, generates a Markdown report, imports from the assessor notes tool, and collects evidence from Entra ID. It is framework-agnostic: a criterion's `source` can be any standard, policy or contract clause, so it works for any gap assessment.
+A small compliance-as-code tool for gap assessments, with a local study app for working through them. Criteria, evidence, findings, evidence requests and risks live as YAML files in Git. A CLI validates them, generates a Markdown report, imports from the assessor notes tool and collects evidence from Entra ID. A local web app (`grc serve`) lets you read a level's files, take notes, log records, submit for review, import the grading and track progress. It is framework-agnostic: a criterion's `source` can be any standard, policy or contract clause, so it works for any gap assessment.
 
 **Fictional data only.** Nothing in this repo is real client data, and it never should be.
 
@@ -9,6 +9,7 @@ Needs Python 3.10+.
 
 ```bash
 uv venv --python 3.14 && uv pip install -e '.[dev]'
+.venv/bin/grc serve ~/projects/grc/levels/02-ashgrove   # the study app
 .venv/bin/grc init my-assessment      # blank folder with commented templates
 .venv/bin/grc validate my-assessment  # exit 1 and every problem listed if invalid
 .venv/bin/grc validate data/example   # a fictional worked example
@@ -18,42 +19,41 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 ```
 
 ## Study app
-```bash
-.venv/bin/grc serve ~/projects/grc/levels/02-ashgrove
-```
-Opens a local page (`http://127.0.0.1:8765`) with your level's files on the left (Markdown, CSV as a sortable, filterable table, text), the open file in the middle, and tabs on the right:
+`grc serve <level>` opens a local page (`http://127.0.0.1:8765`). Your level's files are on the left (Markdown, CSV as a sortable, filterable table, text), the open file is in the middle, and tabs are on the right. Your work saves as you type, as the same YAML files the CLI reads, in `<level>/my-work/assessment/` (or `--assessment PATH`), so `grc validate`, `grc report` and Git work on what you log.
+
+**Working through a level**
 - **Notes** for the open file.
-- **Criteria, Evidence, Findings, Requests, Risks**: forms with the same fields as the notes tool. Evidence and criteria are picked from lists, findings show a live rating and what a selected finding still lacks, and the scale (1-3 or 1-5) and slots are set on the Findings tab.
-- **Report**: the Markdown report, built live from what you logged, with a copy button.
-- **Problems**: everything `grc validate` would flag, each one a link to its record. Drafts are allowed; they show up here until complete.
+- **Criteria, Evidence, Findings, Requests, Risks:** forms with the notes tool's fields. Evidence and criteria are picked from lists, findings show a live rating and what a selected finding still lacks, and the scale (1-3 or 1-5) and slots are set on the Findings tab. A **?** beside the main fields shows a short reminder from the playbook.
+- **Problems:** everything `grc validate` would flag, each a link to its record. Drafts are allowed and show up here until complete.
+- **Search** across the files you can see, your notes and your records.
+- **Coverage:** where the assessment is thin: rules with no evidence or not tested, gaps no live finding covers, selected findings on weaker evidence, undecided candidates, evidence nothing uses, and requests still waiting, with a rules-by-evidence grid.
+- **Cite this view** (on a CSV) records the filter and the row count as an evidence entry, so "5 of 31 rows" comes from a saved count. **Add selected text as evidence** quotes what you highlighted, with its source.
+- **Report:** the Markdown report, built live from what you logged.
 
-Everything is saved as you type to the same YAML files the CLI reads, in `my-work/assessment/` (or `--assessment PATH`), so `grc validate`, `grc report` and Git work on what you log. IDs are never reused after a deletion, because the highest number issued per prefix is kept in `assessment.yaml`. The app writes the files in a fixed layout, so comments from the `grc init` templates are dropped after the first save. Two browser tabs editing the same assessment is not supported: the last save wins.
-
-- **Study helpers:**
-  - **Search** across the files you can see, your notes and your records. It never reads `answer-key*` files, `graded/` or anything outside the level.
-  - **Coverage** lists where the assessment is thin: rules with no evidence or not tested, gaps no live finding covers, selected findings on weaker evidence, undecided candidates, evidence nothing uses, and requests still waiting, with a rules-by-evidence grid.
-  - **Cite this view** (on a CSV) records the filter and the row count as a new evidence entry, so "5 of 31 rows" comes from a saved count.
-  - **Add selected text as evidence** quotes what you highlighted in a file, with its source.
-  - A **?** beside the main fields shows a short reminder from the playbook.
-- **Grading:** after you submit and the level is reviewed, import the grading file (layout in [docs/grading-format.md](docs/grading-format.md)). The tab shows a scoreboard of planted gaps, the summary, what went well and what to do next time. The grader's notes appear on your own criteria, evidence and findings. Each miss and each "for next time" point goes in a mistake log with a tag you can change. Only then do the answer key and `graded/` files appear in the file list.
-- **Progress:** every level's status (not started, in progress, submitted, graded), planted gaps caught, ratings that were off, and your mistakes counted by tag across levels, so you can see which kind of error keeps coming back. It looks at the folders next to the one you serve, or at `--levels PATH`. For each it reads one file, `my-work/assessment/grading.yaml`, and only checks that `submitted.yaml` exists. It never opens another level's data room or answer key, does not follow links, and lists only real folders that hold `01-scope.md` or a `data-room`.
+**Finishing and learning from a level**
 - **Export:** the submission, the report (Markdown or a printable HTML page), an Excel workbook (`pip install 'grc-lite[xlsx]'`), a ZIP backup, and one CSV per tab. Spreadsheet cells that start with `=`, `+`, `-` or `@` are saved as text, so a note cannot run as a formula when you open the file.
 - **Import:** reads a notes-tool `notes.md` into an empty assessment, including your per-file notes. It lists anything it could not map and refuses to overwrite existing records.
-- **Submit and lock:** writes `submission.md` (the notes-tool format, so `grc import-notes` reads it back), records its SHA-256 in `submitted.yaml`, and turns editing off. You then send the file to be reviewed. The Export tab shows whether the file and your records still match what you submitted. The lock is a commitment to yourself, not a security control: delete `submitted.yaml` to reopen the level.
+- **Submit and lock:** writes `submission.md` (the notes-tool format, so `grc import-notes` reads it back), records its SHA-256 in `submitted.yaml`, and turns editing off. You then send the file to be reviewed. The Export tab shows whether the file and your records still match what you submitted.
+- **Grading:** import the grading file you get back (layout in [docs/grading-format.md](docs/grading-format.md)). It shows a scoreboard of planted gaps, the summary, what went well and what to do next time. The grader's notes appear on your own criteria, evidence and findings. Each miss and each "for next time" point goes in a mistake log with a tag you can change. Only then do the answer key and `graded/` files appear in the file list.
+- **Progress:** every level's status (not started, in progress, submitted, graded), planted gaps caught, ratings that were off, and your mistakes counted by tag across levels. It looks at the folders next to the one you serve, or at `--levels PATH`. For each it reads one file, `my-work/assessment/grading.yaml`, and only checks that `submitted.yaml` exists.
 
-It is built to be safe to run on a laptop:
+The lock and the answer-key reveal are commitments to yourself, not security controls: deleting `submitted.yaml` reopens a level, and deleting `grading.yaml` seals the key again.
+
+**Built to be safe to run on a laptop**
 - It listens on `127.0.0.1` only and refuses any request whose `Host` header is not localhost, which blocks DNS rebinding.
 - Every API call needs a random token created at startup, and writes must be JSON, so another web page cannot send writes to it.
-- Paths cannot leave the level folder, including through symlinks. `CLAUDE.md`, dotfiles and the `my-work/` folder are never listed or served. `answer-key*` files and `graded/` are hidden until the level is submitted and graded.
-- File content is drawn with DOM text nodes only, under a strict Content-Security-Policy, so a hostile line in a data-room file cannot run script.
+- Paths cannot leave the level folder, including through symlinks. `CLAUDE.md`, dotfiles and `my-work/` are never listed or served. `answer-key*` files and `graded/` are hidden until the level is submitted and graded.
+- File and record text is drawn with DOM text nodes only, under a strict Content-Security-Policy, so a hostile line in a data-room file or a note cannot run script.
+- Progress reads no other level's data room or answer key, does not follow links, and lists only real folders holding `01-scope.md` or a `data-room`.
 
 ## An assessment folder
-- `assessment.yaml`: name and risk `scale` (3 or 5), optional
+- `assessment.yaml`: name, risk `scale` (3 or 5), `slots`, and the highest ID number issued per prefix (so a deleted ID is not reused by the app)
 - `criteria.yaml`: what you test against, with `result` (`not tested`, `meets`, `gap`, `can't test`)
 - `evidence.yaml`: what you looked at (`system`, `document`, `observation`, `interview`)
 - `findings.yaml`: `candidate`, `selected` or `dropped`; selected ones need the full write-up and a likelihood and impact score
 - `requests.yaml`: the evidence request log; no `received` date means outstanding, and the report lists those
 - `risks.yaml`: a risk register (`K-01`) with likelihood x impact, treatment and links to findings and criteria
+- Written by the study app: `notes/`, `submission.md`, `submitted.yaml`, `grading.yaml`, `grading.md`
 
 Rating = likelihood x impact. Scale 3: 7-9 High, 4-6 Medium, 1-3 Low. Scale 5: 20-25 Critical, 13-19 High, 6-12 Medium, 1-5 Low.
 
@@ -62,6 +62,7 @@ Rating = likelihood x impact. Scale 3: 7-9 High, 4-6 Medium, 1-3 Low. Scale 5: 2
 - **`grc report`** refuses to run on invalid data. The report has a summary (criteria by result, findings by status and rating), a candidate-versus-selected table, selected findings sorted by rating, criteria, evidence, a risk register, outstanding requests, and open items. Convert to HTML or PDF with a tool like pandoc.
 - **`grc import-notes`** only translates a notes-tool `notes.md`. Anything it cannot map (a finding whose criteria it cannot match to an ID, a missing section) is left empty and reported as a warning, then `grc validate` shows what still needs fixing.
 - **`grc collect`** reads Entra ID data, compares it to a rule, and adds an evidence entry (see below).
+- **`grc serve`** is the study app above.
 
 ## Evidence collectors
 ```bash
@@ -86,18 +87,28 @@ src/grc_lite/
   loader.py          reads the YAML files, reports every error, checks cross-references
   report.py          renders a loaded assessment as Markdown
   importer.py        converts a notes-tool export into assessment YAML
-  cli.py             Typer commands: init, validate, report, import-notes, collect, serve
   grading.py         reads a grading file and builds the mistake log
-  web/               the local study app: app.py (server), files.py (path rules), records.py (saving records), grades.py (grading storage), progress.py (across levels), static/ (page)
+  coverage.py        finds the thin spots in an assessment
+  cli.py             Typer commands: init, validate, report, import-notes, collect, serve
+  web/               the local study app
+    app.py           the server and its guards (host, token, JSON-only, lock, security headers)
+    files.py         which files may be shown, and safe path handling
+    records.py       saving drafts, ID counters, problems
+    export.py        submission, CSV, Excel, ZIP, printable report, submit-and-lock
+    grades.py        grading storage and the answer-key reveal rule
+    search.py        search across files, notes and records
+    progress.py      status and scores across levels
+    static/          the page: plain JavaScript modules, no build step
   collectors/
     compare.py       pure leavers and MFA comparisons (no I/O)
     sources.py       reads Graph JSON, users CSV and the HR leavers CSV
     graph.py         read-only Microsoft Graph client on the standard library
     record.py        appends the evidence entry and writes the private detail file
-tests/               pytest, including a golden-file test of the example report
+tests/               192 tests, including a golden-file test of the example report
 data/example/        a fictional worked example
+docs/                the grading file format
 ```
-Dependencies are Pydantic, PyYAML, Typer, FastAPI and uvicorn. Everything else is the standard library.
+Dependencies are Pydantic, PyYAML, Typer, FastAPI and uvicorn. Excel export needs the optional `openpyxl`; the tests also use `httpx`. Everything else is the standard library.
 
 ## CI
 Every PR and every push to `main` runs six checks, and all six are required before merge (admins included):
@@ -107,32 +118,39 @@ Every PR and every push to `main` runs six checks, and all six are required befo
 - `audit`: `pip-audit` on the installed dependencies
 - `secrets`: gitleaks over the history that would merge
 
-Actions are pinned to commit SHAs, the gitleaks binary is checksum-verified, and Dependabot proposes updates weekly.
+Actions are pinned to commit SHAs, the gitleaks binary is checksum-verified, and Dependabot is configured to propose updates weekly.
 
-Each control was proved by a throwaway PR that should fail only its own check, then closed unmerged: a broken golden test failed `test`, an unused import failed `lint`, a pinned `jinja2==3.1.2` failed `audit`, and a fake AWS key failed `secrets`. The collector controls were proved by breaking each one locally and watching its test fail.
+Each CI control was proved by a throwaway PR that should fail only its own check, then closed unmerged: a broken golden test failed `test`, an unused import failed `lint`, a pinned `jinja2==3.1.2` failed `audit`, and a fake AWS key failed `secrets`. The collector and study-app controls were proved by breaking each one locally and watching its test fail.
 
 ## Problems hit
 - **The secret scan scanned every branch.** The first proof showed `secrets` red on three PRs with no secret in them, because `gitleaks git .` scans every ref the checkout fetches. A fake key on one branch failed everything. It is now limited to the checked-out history (`--log-opts="HEAD"`), and a second pair of PRs (one with a fake key, one harmless) showed only the key PR going red.
 - **The importer said "Validation passed" on an export with no tables.** It now warns about each missing section.
 - **A real export had a typo in a file name** (`suplier-policy`), which the "Rule N, file" matching could not resolve. The importer now also matches a finding's quoted rule text against the criteria.
+- **A real level folder held a file I had not planned for.** Serving a scratch copy of a level showed its `CLAUDE.md` (the grader's rules) in the file list. It is now always hidden.
+- **Tests that passed for the wrong reason.** Three times a test proved nothing: an "IDs never reused" test whose deletes had silently failed with a 415, a symlink test that pointed at an invalid file so following the link looked the same as refusing it, and a break-the-control check whose pattern did not match the code. Each was found by checking that the test really fails when the control is removed, and rebuilt.
 
 ## Known shortcuts
-- IDs should never be reused after deletion. That is not machine-checked, because the tool keeps no history of deleted IDs.
 - **Live Graph mode has not been run against a real tenant.** It is tested against fixtures with made-up `acme.example` addresses, so the response shapes follow the documentation and are unproved until someone runs it.
+- **The study app has only been tried on scratch copies of levels**, with your real notes and grading files as input. The interface is checked by hand in a browser, not by JavaScript tests, and only in a narrow window.
 - The leavers check sees only the current state, so it cannot tell whether an account that is disabled now was disabled late.
-- The importer drops any free text in the notes tool's "Ev # received" column beyond the evidence number, and only understands that tool's format. The request log and risk register are not in that export, so they are written by hand.
-- Azure resource checks, a CSV import and HTML or PDF output were not built.
+- IDs are never reused by the app, which keeps a counter. Editing the YAML by hand, or using the CLI importer, can still reuse a number and nothing checks it.
+- The app rewrites the YAML in a fixed layout, so template comments are dropped after the first save. Two browser tabs on one assessment is not supported: the last save wins.
+- The grading import understands one layout (see the format doc). Mistake tags for "for next time" points come from a few keywords and are suggestions. The Excel export is a plain workbook, with no formulas or dropdowns.
+- The importer drops any free text in the notes tool's "Ev # received" column beyond the evidence number. The request log and risk register are not in that export, so they are written by hand.
+- Azure resource checks and a CSV import were not built.
 
 ## Teardown
-No cloud resources: nothing is deployed, nothing costs money, and no budget alert is needed. The collectors read an existing tenant using your own `az` session and store no credentials.
+No cloud resources: nothing is deployed, nothing costs money, and no budget alert is needed. The collectors read an existing tenant using your own `az` session and store no credentials. The study app runs only on your machine.
 
 ## Status
-Complete: five phases built and merged through pull requests into a protected `main`.
+Complete: seven phases built and merged through pull requests into a protected `main`.
 1. Data model, validation, `grc validate`, `grc init`
 2. `grc report`
 3. CI on every PR, with each control proved by a failing case
 4. Request log, risk register, `grc import-notes`
 5. Entra evidence collectors
+6. The study app: files and notes, records, export, import, submit and lock, search, coverage
+7. Grading import, mistake log, and progress across levels
 
 ## Development
 ```bash
