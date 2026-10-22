@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from typer.testing import CliRunner
 
 from grc_lite.cli import app
@@ -23,3 +25,10 @@ def test_validate_fails_with_errors(tmp_path):
     result = runner.invoke(app, ["validate", str(tmp_path)])
     assert result.exit_code == 1
     assert "unknown evidence E-9" in result.output
+
+
+def test_shipped_example_is_valid():
+    example = Path(__file__).parent.parent / "data" / "example"
+    result = runner.invoke(app, ["validate", str(example)])
+    assert result.exit_code == 0, result.output
+    assert "OK: 3 criteria, 3 evidence, 3 findings" in result.output
