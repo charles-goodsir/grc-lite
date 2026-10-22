@@ -1,17 +1,26 @@
-"""Command line interface: `grc init`, `grc validate`, `grc report` and `grc import-notes`."""
+"""Command line interface: `grc init`, `grc validate`, `grc report`, `grc import-notes` and `grc collect`."""
 
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from typing import Annotated
 
 import typer
 import yaml
 
+from grc_lite.collectors import graph, sources
+from grc_lite.collectors.compare import check_leavers, check_mfa
+from grc_lite.collectors.errors import CollectError
+from grc_lite.collectors.record import record
 from grc_lite.importer import import_notes
 from grc_lite.loader import AssessmentError, load
 from grc_lite.report import build_report
 
 app = typer.Typer(help="Compliance-as-code for gap assessments.", no_args_is_help=True)
+
+collect_app = typer.Typer(
+    help="Collect evidence from Entra ID and compare it to a rule.", no_args_is_help=True
+)
+app.add_typer(collect_app, name="collect")
 
 TEMPLATES = {
     "assessment.yaml": "name: My assessment\nscale: 3  # risk scale: 3 (1-3) or 5 (1-5)\n",
@@ -160,3 +169,93 @@ def import_notes_command(
     )
     _load_or_exit(folder)
     typer.echo("Validation passed.")
+
+
+def _finish(folder, result, kind, as_of, source, rule, criterion):
+    """Check the target, record the result and print what happened."""
+    assessment = _load_or_exit(folder)
+    if criterion and criterion not in {c.id for c in assessment.criteria}:
+        typer.echo(f"error: unknown criterion {criterion}", err=True)
+        raise typer.Exit(1)
+    evidence_id, detail = record(folder, kind, result, as_of, source, rule)
+    typer.echo(f"Result: {result.verdict}. {result.summary}")
+    typer.echo(f"Evidence {evidence_id} added to {folder / 'evidence.yaml'}")
+    typer.echo(f"Account names saved to {detail} (not tracked by Git)")
+    if criterion:
+        typer.echo(
+            f"Suggested for {criterion}: result '{result.verdict}', evidence {evidence_id}. "
+            "Update criteria.yaml yourself once you agree."
+        )
+
+
+def _as_of(value: datetime | None) -> date:
+    return value.date() if value else date.today()
+
+
+@collect_app.command("leavers")
+def collect_leavers(
+    folder: Annotated[Path, typer.Argument(help="Assessment folder")],
+    hr: Annotated[Path, typer.Option(help="HR leavers CSV with upn and leave_date columns")],
+    users: Annotated[Path | None, typer.Option(help="Entra users export (JSON or CSV)")] = None,
+    live: Annotated[bool, typer.Option(help="Read users from Microsoft Graph via `az`")] = False,
+    max_days: Annotated[int, typer.Option(help="Days allowed after the leave date")] = 1,
+    as_of: Annotated[
+        datetime | None, typer.Option(help="Date to measure from (YYYY-MM-DD)")
+    ] = None,
+    criterion: Annotated[str | None, typer.Option(help="Criterion this is evidence for")] = None,
+):
+    """Leavers must be disabled within --max-days of their leave date."""
+    if bool(users) == live:
+        typer.echo("error: give either --users FILE or --live", err=True)
+        raise typer.Exit(1)
+    try:
+        leavers = sources.read_hr_leavers(hr)
+        entra = graph.fetch_users(graph.az_token()) if live else sources.read_users(users)
+    except CollectError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(1)
+    when = _as_of(as_of)
+    result = check_leavers(entra, leavers, when, max_days)
+    source = (
+        "Entra ID users, live Microsoft Graph" if live else f"Entra ID users export ({users.name})"
+    )
+    _finish(folder, result, "leavers", when, source, {"max_days": max_days}, criterion)
+
+
+@collect_app.command("mfa")
+def collect_mfa(
+    folder: Annotated[Path, typer.Argument(help="Assessment folder")],
+    registrations: Annotated[Path | None, typer.Option(help="userRegistrationDetails JSON")] = None,
+    users: Annotated[
+        Path | None, typer.Option(help="Entra users export, to skip disabled accounts")
+    ] = None,
+    live: Annotated[bool, typer.Option(help="Read from Microsoft Graph via `az`")] = False,
+    scope: Annotated[str, typer.Option(help="admins or all")] = "admins",
+    as_of: Annotated[datetime | None, typer.Option(help="Date recorded (YYYY-MM-DD)")] = None,
+    criterion: Annotated[str | None, typer.Option(help="Criterion this is evidence for")] = None,
+):
+    """Every enabled account in scope has MFA registered."""
+    if bool(registrations) == live:
+        typer.echo("error: give either --registrations FILE or --live", err=True)
+        raise typer.Exit(1)
+    if scope not in ("admins", "all"):
+        typer.echo("error: --scope must be admins or all", err=True)
+        raise typer.Exit(1)
+    try:
+        if live:
+            token = graph.az_token()
+            regs, entra = graph.fetch_registrations(token), graph.fetch_users(token)
+        else:
+            regs = sources.read_registrations(registrations)
+            entra = sources.read_users(users) if users else None
+    except CollectError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(1)
+    when = _as_of(as_of)
+    result = check_mfa(regs, entra, scope)
+    source = (
+        "Entra ID MFA registration report, live Microsoft Graph"
+        if live
+        else f"Entra ID MFA registration report ({registrations.name})"
+    )
+    _finish(folder, result, "mfa", when, source, {"scope": scope}, criterion)
