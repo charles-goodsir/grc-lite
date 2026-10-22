@@ -13,10 +13,11 @@ from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from grc_lite.coverage import coverage
+from grc_lite.grading import TAGS
 from grc_lite.importer import file_notes
 from grc_lite.loader import AssessmentError, load
 from grc_lite.report import build_report
-from grc_lite.web import export, files, records, search
+from grc_lite.web import export, files, grades, records, search
 
 STATIC = Path(__file__).parent / "static"
 CSP = (
@@ -45,6 +46,16 @@ class ImportIn(BaseModel):
     name: str = Field(default="", max_length=200)
 
 
+class GradingIn(BaseModel):
+    text: str = Field(max_length=1_000_000)
+    name: str = Field(default="", max_length=200)
+    replace: bool = False
+
+
+class TagIn(BaseModel):
+    tag: str = Field(max_length=60)
+
+
 class MetaIn(BaseModel):
     name: str = Field(max_length=200)
     scale: int
@@ -61,7 +72,9 @@ def create_app(level: Path, assessment: Path, token: str | None = None) -> FastA
             sent = request.headers.get("x-grc-token", "").encode()
             if not secrets.compare_digest(sent, token.encode()):
                 return JSONResponse({"detail": "missing or wrong token"}, 401)
-            if request.method not in ("GET", "HEAD") and export.is_locked(assessment):
+            writing = request.method not in ("GET", "HEAD")
+            grading = request.url.path.startswith("/api/grading")  # arrives after the lock
+            if writing and export.is_locked(assessment) and not grading:
                 return JSONResponse({"detail": "This level is submitted and locked"}, 423)
             if request.method not in ("GET", "HEAD") and not request.headers.get(
                 "content-type", ""
@@ -75,7 +88,7 @@ def create_app(level: Path, assessment: Path, token: str | None = None) -> FastA
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
 
     def visible(path: str) -> Path:
-        found = files.resolve_visible(level, path)
+        found = files.resolve_visible(level, path, grades.revealed(assessment))
         if found is None:
             raise HTTPException(404, "no such file")
         return found
@@ -90,7 +103,7 @@ def create_app(level: Path, assessment: Path, token: str | None = None) -> FastA
 
     @app.get("/api/files")
     def list_files():
-        return {"files": files.list_files(level)}
+        return {"files": files.list_files(level, grades.revealed(assessment))}
 
     @app.get("/api/file")
     def read_file(path: str):
@@ -108,7 +121,7 @@ def create_app(level: Path, assessment: Path, token: str | None = None) -> FastA
 
     @app.get("/api/notes-index")
     def notes_index():
-        return {"paths": [p for p in files.list_files(level)
+        return {"paths": [p for p in files.list_files(level, grades.revealed(assessment))
                           if files.notes_path(assessment, p).exists()]}  # fmt: skip
 
     @app.put("/api/notes")
@@ -185,6 +198,24 @@ def create_app(level: Path, assessment: Path, token: str | None = None) -> FastA
             return coverage(data, date.today())
 
         return guarded(run)
+
+    @app.get("/api/grading")
+    def get_grading():
+        return {"graded": grades.has_grading(assessment), "grading": grades.read(assessment),
+                "tags": TAGS, "revealed": grades.revealed(assessment)}  # fmt: skip
+
+    @app.post("/api/grading")
+    def import_grading(body: GradingIn):
+        return guarded(
+            lambda: grades.import_grading(assessment, body.text, body.name, body.replace)
+        )
+
+    @app.put("/api/grading/mistakes/{mistake_id}")
+    def tag_mistake(mistake_id: str, body: TagIn):
+        done = guarded(lambda: grades.set_tag(assessment, mistake_id, body.tag))
+        if done is None:
+            raise HTTPException(404, "no such mistake")
+        return done
 
     @app.post("/api/submit")
     def submit():

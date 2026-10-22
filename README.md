@@ -35,6 +35,7 @@ Everything is saved as you type to the same YAML files the CLI reads, in `my-wor
   - **Cite this view** (on a CSV) records the filter and the row count as a new evidence entry, so "5 of 31 rows" comes from a saved count.
   - **Add selected text as evidence** quotes what you highlighted in a file, with its source.
   - A **?** beside the main fields shows a short reminder from the playbook.
+- **Grading:** after you submit and the level is reviewed, import the grading file (layout in [docs/grading-format.md](docs/grading-format.md)). The tab shows a scoreboard of planted gaps, the summary, what went well and what to do next time. The grader's notes appear on your own criteria, evidence and findings. Each miss and each "for next time" point goes in a mistake log with a tag you can change. Only then do the answer key and `graded/` files appear in the file list.
 - **Export:** the submission, the report (Markdown or a printable HTML page), an Excel workbook (`pip install 'grc-lite[xlsx]'`), a ZIP backup, and one CSV per tab. Spreadsheet cells that start with `=`, `+`, `-` or `@` are saved as text, so a note cannot run as a formula when you open the file.
 - **Import:** reads a notes-tool `notes.md` into an empty assessment, including your per-file notes. It lists anything it could not map and refuses to overwrite existing records.
 - **Submit and lock:** writes `submission.md` (the notes-tool format, so `grc import-notes` reads it back), records its SHA-256 in `submitted.yaml`, and turns editing off. You then send the file to be reviewed. The Export tab shows whether the file and your records still match what you submitted. The lock is a commitment to yourself, not a security control: delete `submitted.yaml` to reopen the level.
@@ -42,7 +43,7 @@ Everything is saved as you type to the same YAML files the CLI reads, in `my-wor
 It is built to be safe to run on a laptop:
 - It listens on `127.0.0.1` only and refuses any request whose `Host` header is not localhost, which blocks DNS rebinding.
 - Every API call needs a random token created at startup, and writes must be JSON, so another web page cannot send writes to it.
-- Paths cannot leave the level folder, including through symlinks. `answer-key*` files, `CLAUDE.md`, dotfiles and the `graded/` and `my-work/` folders are never listed or served.
+- Paths cannot leave the level folder, including through symlinks. `CLAUDE.md`, dotfiles and the `my-work/` folder are never listed or served. `answer-key*` files and `graded/` are hidden until the level is submitted and graded.
 - File content is drawn with DOM text nodes only, under a strict Content-Security-Policy, so a hostile line in a data-room file cannot run script.
 
 ## An assessment folder
@@ -85,7 +86,8 @@ src/grc_lite/
   report.py          renders a loaded assessment as Markdown
   importer.py        converts a notes-tool export into assessment YAML
   cli.py             Typer commands: init, validate, report, import-notes, collect, serve
-  web/               the local study app: app.py (server), files.py (path rules), records.py (saving records), static/ (page)
+  grading.py         reads a grading file and builds the mistake log
+  web/               the local study app: app.py (server), files.py (path rules), records.py (saving records), grades.py (grading storage), static/ (page)
   collectors/
     compare.py       pure leavers and MFA comparisons (no I/O)
     sources.py       reads Graph JSON, users CSV and the HR leavers CSV

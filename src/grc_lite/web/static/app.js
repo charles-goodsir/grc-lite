@@ -4,6 +4,7 @@ import { renderCsv } from "./csv.js";
 import { searchTab } from "./search.js";
 import { coverageTab } from "./coverage.js";
 import { exportTab } from "./export.js";
+import { gradingTab } from "./grading.js";
 import { KINDS, LABELS, on, problemsTab, recordsTab, reportTab, store } from "./records.js";
 
 // Everything shown from a file is built with DOM text nodes, never innerHTML,
@@ -136,10 +137,18 @@ const TABS = [
   { id: "coverage", label: "Coverage", render: () => coverageTab(nav) },
   { id: "report", label: "Report", render: reportTab },
   { id: "export", label: "Export", render: () => exportTab(() => showTab("export")) },
+  { id: "grading", label: "Grading", render: () => gradingTab(nav) },
   { id: "problems", label: "Problems", render: problemsTab },
 ];
 let activeTab = "notes";
 const nav = {
+  refreshFiles: async () => {
+    const [list, index] = await Promise.all([api("/api/files"), api("/api/notes-index")]);
+    files = list.files;
+    noted = new Set(index.paths);
+    drawFiles();
+  },
+  rerender: () => showTab(activeTab),
   openFile: (path) => openFile(path),
   openNotes: async (path) => { await openFile(path); await showTab("notes"); },
   openRecord: (kind, id) => showTab(kind, id),
