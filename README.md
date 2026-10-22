@@ -1,6 +1,6 @@
 # grc-lite
 
-A small compliance-as-code tool for gap assessments. Criteria, evidence and findings live as YAML files in Git, a CLI validates them, and`grc report` generates a Markdown report from them. It is framework-agnostic: a criterion's `source` can be any standard, policy or contract clause.
+A small compliance-as-code tool for gap assessments. Criteria, evidence and findings live as YAML files in Git, a CLI validates them, and `grc report` generates a Markdown report from them. It is framework-agnostic: a criterion's `source` can be any standard, policy or contract clause.
 
 **Fictional data only.** Nothing in this repo is real client data, and it never should be.
 
