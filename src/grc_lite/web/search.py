@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from grc_lite.web import files, records
+from grc_lite.web import files, grades, records
 
 MIN_QUERY = 2
 MAX_QUERY = 100
@@ -31,16 +31,17 @@ def search(level: Path, assessment: Path, query: str) -> dict:
     if not MIN_QUERY <= len(needle) <= MAX_QUERY:
         raise records.RecordError(f"search needs {MIN_QUERY} to {MAX_QUERY} characters")
     hits: list[dict] = []
+    reveal = grades.revealed(assessment)
 
     def add(hit: dict) -> bool:
         hits.append(hit)
         return len(hits) >= MAX_HITS
 
     done = False
-    for path in files.list_files(level):
+    for path in files.list_files(level, reveal):
         if done:
             break
-        found = files.resolve_visible(level, path)
+        found = files.resolve_visible(level, path, reveal)
         if found and found.stat().st_size <= files.MAX_BYTES:
             for number, snippet in _scan(found.read_text(errors="replace"), needle):
                 if add({"kind": "file", "path": path, "line": number, "snippet": snippet}):
