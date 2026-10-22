@@ -35,3 +35,19 @@ export function debounce(fn, ms) {
   wrapped.cancel = () => clearTimeout(timer);
   return wrapped;
 }
+
+// Download a file the server builds. A plain link cannot send the token, so fetch it and save the blob.
+export async function download(path, filename) {
+  const res = await fetch(path, { headers: { "X-Grc-Token": token } });
+  if (!res.ok) {
+    let detail = "";
+    try { detail = (await res.json()).detail || ""; } catch (e) { /* no body */ }
+    throw new Error(detail || `download failed (${res.status})`);
+  }
+  const url = URL.createObjectURL(await res.blob());
+  const link = h("a", { href: url, download: filename });
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}

@@ -157,7 +157,7 @@ def submit(level: Path, assessment: Path) -> dict:
     temp.write_text(text)
     temp.replace(assessment / SUBMISSION)  # no half-written file; the status is written last
     records._write(assessment / SUBMITTED, status)
-    return {**status, "markdown": text}
+    return {**status, "markdown": text, "file": str(assessment / SUBMISSION)}
 
 
 def submission_status(level: Path, assessment: Path) -> dict:
@@ -171,6 +171,7 @@ def submission_status(level: Path, assessment: Path) -> dict:
         "submitted_at": recorded.get("submitted_at"),
         "sha256": recorded.get("sha256"),
         "problems": recorded.get("problems"),
+        "file": str(written),
         "file_intact": written.exists() and _sha(written.read_text()) == recorded.get("sha256"),
         "matches_records": _sha(submission_md(level, assessment)) == recorded.get("sha256"),
     }

@@ -4,14 +4,15 @@
 import { h, api, debounce } from "./ui.js";
 import { renderMarkdown } from "./md.js";
 
-export const store = { meta: { name: "", scale: 3, slots: 8, counters: {} }, criteria: [], evidence: [], findings: [], requests: [], risks: [], problems: [] };
+export const store = { locked: false, meta: { name: "", scale: 3, slots: 8, counters: {} }, criteria: [], evidence: [], findings: [], requests: [], risks: [], problems: [] };
 
-let listeners = { problems: () => {}, goto: () => {}, rerender: () => {} };
+let listeners = { problems: () => {}, goto: () => {}, rerender: () => {}, locked: () => {} };
 export const on = (handlers) => { listeners = { ...listeners, ...handlers }; };
 
 export async function loadRecords() {
   Object.assign(store, await api("/api/records"));
   listeners.problems();
+  listeners.locked();
 }
 
 // ---- save status shared by the tabs ----
@@ -211,6 +212,10 @@ function control(kind, record, [key, label, type], state, changed) {
     input.id = id;
     wrap.firstChild.setAttribute("for", id); // clicking the label focuses the field, and screen readers name it
   }
+  if (store.locked) {
+    if (input.tagName === "DIV") input.querySelectorAll("input").forEach((box) => { box.disabled = true; });
+    else input.disabled = true;
+  }
   wrap.append(input);
   return wrap;
 }
@@ -223,6 +228,7 @@ function card(kind, record) {
   const badge = h("span", { class: "badge-line" });
   const missing = h("div", { class: "missing" });
   const del = h("button", { class: "danger", onclick: () => remove() }, "Delete");
+  del.hidden = store.locked;
   const root = h("div", { class: "card", id: `rec-${record.id}` }, h("h4", {}, badge, del), missing);
 
   function refresh() {
@@ -296,6 +302,7 @@ export async function recordsTab(kind) {
       setStatus("NOT ADDED: " + e.message, true);
     }
   } }, form.add);
+  add.disabled = store.locked;
   const top = h("div", { class: "top" }, h("div", { class: "row" }, summary, add));
 
   let filter = "all";
@@ -319,6 +326,7 @@ function scaleRow(onFilter) {
   const scale = h("select", { "aria-label": "Risk scale" }, [h("option", { value: "3" }, "Scale 1-3"), h("option", { value: "5" }, "Scale 1-5")]);
   scale.value = String(store.meta.scale);
   const slots = h("input", { type: "number", min: "1", max: "50", "aria-label": "Slots", value: String(store.meta.slots) });
+  scale.disabled = slots.disabled = store.locked;
   const apply = async () => {
     try {
       Object.assign(store, await api("/api/meta", { method: "PUT", body: JSON.stringify({ name: store.meta.name, scale: Number(scale.value), slots: Number(slots.value) || 8 }) }));
@@ -378,6 +386,7 @@ export async function reportTab() {
       setStatus("NOT SAVED: " + e.message, true);
     }
   }, 600);
+  name.disabled = store.locked;
   name.addEventListener("input", rename);
   const result = await api("/api/report");
   let copy = null;

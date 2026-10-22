@@ -1,6 +1,7 @@
 import { $, h, api } from "./ui.js";
 import { renderMarkdown } from "./md.js";
 import { renderCsv } from "./csv.js";
+import { exportTab } from "./export.js";
 import { KINDS, LABELS, on, problemsTab, recordsTab, reportTab, store } from "./records.js";
 
 // Everything shown from a file is built with DOM text nodes, never innerHTML,
@@ -69,6 +70,7 @@ const notesPanel = (() => {
   }
   box.addEventListener("input", () => { dirty = true; status.textContent = "Typing..."; clearTimeout(timer); timer = setTimeout(save, 500); });
   return {
+    setLocked(locked) { box.readOnly = locked; },
     element: () => [box, status],
     flush: save,
     async load(next) {
@@ -94,6 +96,7 @@ const TABS = [
   { id: "notes", label: "Notes", render: async () => notesPanel.element() },
   ...KINDS.map((kind) => ({ id: kind, label: LABELS[kind], render: () => recordsTab(kind) })),
   { id: "report", label: "Report", render: reportTab },
+  { id: "export", label: "Export", render: () => exportTab(() => showTab("export")) },
   { id: "problems", label: "Problems", render: problemsTab },
 ];
 let activeTab = "notes";
@@ -122,8 +125,16 @@ function problemCount() {
   if (button) button.textContent = n ? `Problems (${n})` : "Problems";
 }
 
+function updateLock() {
+  const bar = $("lockbar");
+  bar.hidden = !store.locked;
+  bar.textContent = store.locked ? "Submitted and locked. Editing is off; reading and export still work." : "";
+  notesPanel.setLocked(store.locked);
+}
+
 on({
   problems: problemCount,
+  locked: updateLock,
   goto: (kind, id) => showTab(kind, id),
   rerender: (focusId) => showTab(activeTab, focusId),
 });
@@ -146,6 +157,7 @@ async function start() {
     const [info, list, index, records] = await Promise.all([api("/api/info"), api("/api/files"), api("/api/notes-index"), api("/api/records")]);
     Object.assign(store, records);
     problemCount();
+    updateLock();
     $("level-name").textContent = info.level;
     document.title = info.level + " | grc-lite";
     files = list.files;
