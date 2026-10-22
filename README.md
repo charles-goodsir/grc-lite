@@ -21,7 +21,15 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 ```bash
 .venv/bin/grc serve ~/projects/grc/levels/02-ashgrove
 ```
-Opens a local page (`http://127.0.0.1:8765`) with your level's files on the left (Markdown, CSV as a sortable, filterable table, text), the open file in the middle, and notes on the right. Notes save to disk as you type, in `my-work/assessment/notes/` (or `--assessment PATH`), so they live in Git and not in the browser. This is the first part of the app; forms for criteria, evidence and findings, the report, and export come next.
+Opens a local page (`http://127.0.0.1:8765`) with your level's files on the left (Markdown, CSV as a sortable, filterable table, text), the open file in the middle, and tabs on the right:
+- **Notes** for the open file.
+- **Criteria, Evidence, Findings, Requests, Risks**: forms with the same fields as the notes tool. Evidence and criteria are picked from lists, findings show a live rating and what a selected finding still lacks, and the scale (1-3 or 1-5) and slots are set on the Findings tab.
+- **Report**: the Markdown report, built live from what you logged, with a copy button.
+- **Problems**: everything `grc validate` would flag, each one a link to its record. Drafts are allowed; they show up here until complete.
+
+Everything is saved as you type to the same YAML files the CLI reads, in `my-work/assessment/` (or `--assessment PATH`), so `grc validate`, `grc report` and Git work on what you log. IDs are never reused after a deletion, because the highest number issued per prefix is kept in `assessment.yaml`. The app writes the files in a fixed layout, so comments from the `grc init` templates are dropped after the first save. Two browser tabs editing the same assessment is not supported: the last save wins.
+
+Export, submitting a level, and importing a notes file come next.
 
 It is built to be safe to run on a laptop:
 - It listens on `127.0.0.1` only and refuses any request whose `Host` header is not localhost, which blocks DNS rebinding.
@@ -69,7 +77,7 @@ src/grc_lite/
   report.py          renders a loaded assessment as Markdown
   importer.py        converts a notes-tool export into assessment YAML
   cli.py             Typer commands: init, validate, report, import-notes, collect, serve
-  web/               the local study app: app.py (server), files.py (path rules), static/ (page)
+  web/               the local study app: app.py (server), files.py (path rules), records.py (saving records), static/ (page)
   collectors/
     compare.py       pure leavers and MFA comparisons (no I/O)
     sources.py       reads Graph JSON, users CSV and the HR leavers CSV

@@ -1,185 +1,10 @@
-"use strict";
+import { $, h, api } from "./ui.js";
+import { renderMarkdown } from "./md.js";
+import { renderCsv } from "./csv.js";
+import { KINDS, LABELS, on, problemsTab, recordsTab, reportTab, store } from "./records.js";
 
-// Everything shown from a file is built with textContent / DOM nodes, never innerHTML,
+// Everything shown from a file is built with DOM text nodes, never innerHTML,
 // so a hostile line in a data-room file cannot run script in the page.
-
-const token = document.querySelector('meta[name="grc-token"]').content;
-const $ = (id) => document.getElementById(id);
-
-function h(tag, attrs, ...kids) {
-  const node = document.createElement(tag);
-  for (const [key, value] of Object.entries(attrs || {})) {
-    if (key === "class") node.className = value;
-    else if (key.startsWith("on")) node.addEventListener(key.slice(2), value);
-    else node.setAttribute(key, value);
-  }
-  for (const kid of kids.flat()) node.append(kid);
-  return node;
-}
-
-async function api(path, options = {}) {
-  const headers = { "X-Grc-Token": token };
-  if (options.body) headers["Content-Type"] = "application/json";
-  const res = await fetch(path, { ...options, headers });
-  if (!res.ok) throw new Error(`${res.status} ${path}`);
-  return res.json();
-}
-
-// ---- markdown (small subset: headings, lists, tables, code, quotes, bold, italic, code) ----
-
-function inline(parent, text) {
-  const pattern = /(\*\*[^*]+\*\*|`[^`]+`|\*[^*\s][^*]*\*|\[[^\]]+\]\([^)]*\))/g;
-  let last = 0;
-  for (const m of text.matchAll(pattern)) {
-    if (m.index > last) parent.append(text.slice(last, m.index));
-    const tok = m[0];
-    if (tok.startsWith("**")) parent.append(h("strong", {}, tok.slice(2, -2)));
-    else if (tok.startsWith("`")) parent.append(h("code", {}, tok.slice(1, -1)));
-    else if (tok.startsWith("[")) parent.append(tok.slice(1, tok.indexOf("]"))); // links show their text only
-    else parent.append(h("em", {}, tok.slice(1, -1)));
-    last = m.index + tok.length;
-  }
-  if (last < text.length) parent.append(text.slice(last));
-}
-
-function cells(line) {
-  return line.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
-}
-
-function renderMarkdown(text) {
-  const root = h("div", { class: "md" });
-  const lines = text.replace(/\r\n?/g, "\n").split("\n");
-  let i = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (/^```/.test(line)) {
-      const code = [];
-      i++;
-      while (i < lines.length && !/^```/.test(lines[i])) code.push(lines[i++]);
-      i++;
-      root.append(h("pre", {}, h("code", {}, code.join("\n"))));
-    } else if (/^#{1,6}\s/.test(line)) {
-      const level = line.match(/^#+/)[0].length;
-      const node = h("h" + level);
-      inline(node, line.replace(/^#+\s*/, ""));
-      root.append(node);
-      i++;
-    } else if (/^\s*\|/.test(line) && /^\s*\|[\s:|-]+\|\s*$/.test(lines[i + 1] || "")) {
-      const table = h("table");
-      const head = h("tr");
-      for (const c of cells(line)) { const th = h("th"); inline(th, c); head.append(th); }
-      table.append(h("thead", {}, head));
-      i += 2;
-      const body = h("tbody");
-      while (i < lines.length && /^\s*\|/.test(lines[i])) {
-        const row = h("tr");
-        for (const c of cells(lines[i])) { const td = h("td"); inline(td, c); row.append(td); }
-        body.append(row);
-        i++;
-      }
-      table.append(body);
-      root.append(table);
-    } else if (/^\s*([-*]|\d+\.)\s+/.test(line)) {
-      const list = h(/^\s*\d/.test(line) ? "ol" : "ul");
-      while (i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i])) {
-        const item = h("li");
-        inline(item, lines[i].replace(/^\s*([-*]|\d+\.)\s+/, ""));
-        list.append(item);
-        i++;
-      }
-      root.append(list);
-    } else if (/^>\s?/.test(line)) {
-      const quote = h("blockquote");
-      const parts = [];
-      while (i < lines.length && /^>\s?/.test(lines[i])) parts.push(lines[i++].replace(/^>\s?/, ""));
-      inline(quote, parts.join(" "));
-      root.append(quote);
-    } else if (/^(-{3,}|\*{3,})\s*$/.test(line)) {
-      root.append(h("hr"));
-      i++;
-    } else if (line.trim() === "") {
-      i++;
-    } else {
-      const para = h("p");
-      const parts = [];
-      while (i < lines.length && lines[i].trim() !== "" && !/^(#{1,6}\s|```|>|\s*([-*]|\d+\.)\s+|\s*\|)/.test(lines[i])) {
-        parts.push(lines[i++]);
-      }
-      if (!parts.length) parts.push(lines[i++]);
-      inline(para, parts.join(" "));
-      root.append(para);
-    }
-  }
-  return root;
-}
-
-// ---- csv ----
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [], field = "", quoted = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (quoted) {
-      if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
-      else if (c === '"') quoted = false;
-      else field += c;
-    } else if (c === '"') quoted = true;
-    else if (c === ",") { row.push(field); field = ""; }
-    else if (c === "\n" || c === "\r") {
-      if (c === "\r" && text[i + 1] === "\n") i++;
-      row.push(field); field = "";
-      rows.push(row); row = [];
-    } else field += c;
-  }
-  if (field !== "" || row.length) { row.push(field); rows.push(row); }
-  return rows.filter((r) => r.some((f) => f !== ""));
-}
-
-const ROW_LIMIT = 2000;
-
-function renderCsv(text) {
-  const [head, ...body] = parseCsv(text);
-  const root = h("div", { class: "data" });
-  if (!head) { root.append(h("p", { class: "empty" }, "Empty file.")); return root; }
-  const state = { query: "", sortCol: -1, dir: 1 };
-  const count = h("span", { class: "count" });
-  const wrap = h("div", { class: "scroll" });
-  const input = h("input", { type: "search", placeholder: "Filter rows", "aria-label": "Filter rows" });
-
-  function draw() {
-    const q = state.query.toLowerCase();
-    let rows = body.filter((r) => !q || r.some((f) => f.toLowerCase().includes(q)));
-    if (state.sortCol >= 0) {
-      const col = state.sortCol;
-      rows = [...rows].sort((a, b) => {
-        const x = a[col] ?? "", y = b[col] ?? "";
-        const nx = parseFloat(x), ny = parseFloat(y);
-        const cmp = !isNaN(nx) && !isNaN(ny) ? nx - ny : x.localeCompare(y);
-        return cmp * state.dir;
-      });
-    }
-    count.textContent = `${rows.length} of ${body.length} rows` + (rows.length > ROW_LIMIT ? ` (first ${ROW_LIMIT} shown)` : "");
-    const tr = h("tr");
-    head.forEach((name, col) => {
-      const th = h("th", { tabindex: "0", scope: "col", onclick: () => sortBy(col), onkeydown: (e) => { if (e.key === "Enter") sortBy(col); } }, name);
-      if (state.sortCol === col) th.setAttribute("aria-sort", state.dir === 1 ? "ascending" : "descending");
-      tr.append(th);
-    });
-    const tbody = h("tbody");
-    for (const r of rows.slice(0, ROW_LIMIT)) tbody.append(h("tr", {}, head.map((_, c) => h("td", {}, r[c] ?? ""))));
-    wrap.replaceChildren(h("table", {}, h("thead", {}, tr), tbody));
-  }
-  function sortBy(col) {
-    state.dir = state.sortCol === col ? -state.dir : 1;
-    state.sortCol = col;
-    draw();
-  }
-  input.addEventListener("input", () => { state.query = input.value; draw(); });
-  root.append(h("div", { class: "bar" }, input, count), wrap);
-  draw();
-  return root;
-}
 
 // ---- file list and viewer ----
 
@@ -190,9 +15,8 @@ function drawFiles() {
   const list = $("files");
   list.replaceChildren();
   for (const path of files.filter((p) => p.toLowerCase().includes(q))) {
-    const item = h("div", { class: "item" + (path === current ? " on" : ""), role: "option", tabindex: "0", "aria-selected": String(path === current), onclick: () => openFile(path), onkeydown: (e) => { if (e.key === "Enter") openFile(path); } },
-      h("span", { class: "dot" + (noted.has(path) ? " has" : ""), title: "Has notes" }), path);
-    list.append(item);
+    list.append(h("div", { class: "item" + (path === current ? " on" : ""), role: "option", tabindex: "0", "aria-selected": String(path === current), onclick: () => openFile(path), onkeydown: (e) => { if (e.key === "Enter") openFile(path); } },
+      h("span", { class: "dot" + (noted.has(path) ? " has" : ""), title: "Has notes" }), path));
   }
 }
 
@@ -219,7 +43,7 @@ function step(delta) {
   openFile(files[Math.min(files.length - 1, Math.max(0, at + delta))]);
 }
 
-// ---- right-hand tabs ----
+// ---- notes tab ----
 
 const notesPanel = (() => {
   const box = h("textarea", { id: "notes-text", placeholder: "Notes for this file. Saved as you type.", "aria-label": "Notes for this file" });
@@ -264,13 +88,45 @@ const notesPanel = (() => {
   };
 })();
 
-const TABS = [{ id: "notes", label: "Notes", render: () => notesPanel.element() }];
+// ---- tabs ----
 
-function showTab(id) {
+const TABS = [
+  { id: "notes", label: "Notes", render: async () => notesPanel.element() },
+  ...KINDS.map((kind) => ({ id: kind, label: LABELS[kind], render: () => recordsTab(kind) })),
+  { id: "report", label: "Report", render: reportTab },
+  { id: "problems", label: "Problems", render: problemsTab },
+];
+let activeTab = "notes";
+
+async function showTab(id, focusId) {
+  activeTab = id;
   const tab = TABS.find((t) => t.id === id);
   [...$("tabs").children].forEach((b) => b.setAttribute("aria-selected", String(b.dataset.id === id)));
-  $("panel").replaceChildren(...tab.render());
+  try {
+    $("panel").replaceChildren(...(await tab.render()));
+  } catch (e) {
+    $("panel").replaceChildren(h("p", { class: "empty pad" }, "Could not load this tab: " + e.message));
+  }
+  if (focusId) {
+    const target = document.getElementById("rec-" + focusId);
+    if (target) {
+      target.scrollIntoView({ block: "center" });
+      target.classList.add("flash");
+    }
+  }
 }
+
+function problemCount() {
+  const n = store.problems.length;
+  const button = document.querySelector('#tabs button[data-id="problems"]');
+  if (button) button.textContent = n ? `Problems (${n})` : "Problems";
+}
+
+on({
+  problems: problemCount,
+  goto: (kind, id) => showTab(kind, id),
+  rerender: (focusId) => showTab(activeTab, focusId),
+});
 
 // ---- start ----
 
@@ -287,7 +143,9 @@ async function start() {
   });
   addEventListener("beforeunload", () => { notesPanel.flush(); });
   try {
-    const [info, list, index] = await Promise.all([api("/api/info"), api("/api/files"), api("/api/notes-index")]);
+    const [info, list, index, records] = await Promise.all([api("/api/info"), api("/api/files"), api("/api/notes-index"), api("/api/records")]);
+    Object.assign(store, records);
+    problemCount();
     $("level-name").textContent = info.level;
     document.title = info.level + " | grc-lite";
     files = list.files;

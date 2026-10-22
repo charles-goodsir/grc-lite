@@ -2,7 +2,9 @@
 keeping other web pages and other paths out, not about multiple users."""
 
 import secrets
+from datetime import date
 from pathlib import Path
+from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse
@@ -10,7 +12,9 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
-from grc_lite.web import files
+from grc_lite.loader import AssessmentError, load
+from grc_lite.report import build_report
+from grc_lite.web import files, records
 
 STATIC = Path(__file__).parent / "static"
 CSP = (
@@ -28,6 +32,16 @@ SECURITY_HEADERS = {
 class NotesIn(BaseModel):
     path: str
     text: str = Field(max_length=200_000)
+
+
+class RecordIn(BaseModel):
+    fields: dict[str, Any] = {}
+
+
+class MetaIn(BaseModel):
+    name: str = Field(max_length=200)
+    scale: int
+    slots: int
 
 
 def create_app(level: Path, assessment: Path, token: str | None = None) -> FastAPI:
@@ -100,6 +114,53 @@ def create_app(level: Path, assessment: Path, token: str | None = None) -> FastA
         temp.write_text(body.text)
         temp.replace(target)  # no half-written notes if the process dies mid-save
         return {"ok": True}
+
+    def checked(kind: str) -> str:
+        if kind not in records.KINDS:
+            raise HTTPException(404, "unknown record type")
+        return kind
+
+    def guarded(action):
+        try:
+            return action()
+        except records.RecordError as e:
+            raise HTTPException(422, str(e)) from None
+
+    @app.get("/api/records")
+    def all_records():
+        return guarded(lambda: records.snapshot(assessment))
+
+    @app.post("/api/records/{kind}")
+    def create_record(kind: str, body: RecordIn):
+        return guarded(lambda: records.create(assessment, checked(kind), body.fields))
+
+    @app.put("/api/records/{kind}/{ident}")
+    def update_record(kind: str, ident: str, body: RecordIn):
+        done = guarded(lambda: records.update(assessment, checked(kind), ident, body.fields))
+        if done is None:
+            raise HTTPException(404, "no such record")
+        return done
+
+    @app.delete("/api/records/{kind}/{ident}")
+    def delete_record(kind: str, ident: str):
+        done = guarded(lambda: records.delete(assessment, checked(kind), ident))
+        if done is None:
+            raise HTTPException(404, "no such record")
+        return done
+
+    @app.put("/api/meta")
+    def put_meta(body: MetaIn):
+        return guarded(lambda: records.set_meta(assessment, body.name, body.scale, body.slots))
+
+    @app.get("/api/report")
+    def report():
+        found = records.problems(assessment)
+        if found:
+            return {"markdown": None, "problems": found}
+        try:
+            return {"markdown": build_report(load(assessment), date.today()), "problems": []}
+        except AssessmentError:
+            return {"markdown": None, "problems": records.problems(assessment)}
 
     app.mount("/static", StaticFiles(directory=STATIC), name="static")
     return app

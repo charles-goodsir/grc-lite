@@ -158,6 +158,17 @@ class Risk(_Base):
 class Meta(_Base):
     name: str = "Untitled assessment"
     scale: int = 3  # risk scale: 3 (1-3) or 5 (1-5)
+    slots: int = 8  # how many findings the report may select
+    counters: dict[
+        str, int
+    ] = {}  # highest number ever issued per ID prefix, so IDs are never reused
+
+    @model_validator(mode="after")
+    def _counter_prefixes_are_known(self):
+        unknown = set(self.counters) - {"C", "E", "F", "R", "K"}
+        if unknown:
+            raise ValueError(f"unknown counter prefix: {', '.join(sorted(unknown))}")
+        return self
 
     @model_validator(mode="after")
     def _scale_is_supported(self):
