@@ -1,0 +1,11 @@
+{
+  "value": [
+    {"userPrincipalName": "amy.reed@acme.example", "accountEnabled": true},
+    {"userPrincipalName": "ben.cole@acme.example", "accountEnabled": false},
+    {"userPrincipalName": "cat.lee@acme.example", "accountEnabled": true},
+    {"userPrincipalName": "dan.fox@acme.example", "accountEnabled": true},
+    {"userPrincipalName": "admin1@acme.example", "accountEnabled": true},
+    {"userPrincipalName": "admin2@acme.example", "accountEnabled": true},
+    {"userPrincipalName": "oldadmin@acme.example", "accountEnabled": false}
+  ]
+}
