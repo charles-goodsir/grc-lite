@@ -1,11 +1,13 @@
-"""Command line interface: `grc validate` and `grc init`."""
+"""Command line interface: `grc init`, `grc validate` and `grc report`."""
 
+from datetime import date
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from grc_lite.loader import AssessmentError, load
+from grc_lite.report import build_report
 
 app = typer.Typer(help="Compliance-as-code for gap assessments.", no_args_is_help=True)
 
@@ -56,16 +58,20 @@ TEMPLATES = {
 }
 
 
-@app.command()
-def validate(folder: Annotated[Path, typer.Argument(help="Assessment folder")]):
-    """Check an assessment folder; exit 1 and list every problem if it is invalid."""
+def _load_or_exit(folder: Path):
     try:
-        a = load(folder)
+        return load(folder)
     except AssessmentError as e:
         for line in e.errors:
             typer.echo(f"error: {line}", err=True)
         typer.echo(f"{len(e.errors)} error(s)", err=True)
         raise typer.Exit(1)
+
+
+@app.command()
+def validate(folder: Annotated[Path, typer.Argument(help="Assessment folder")]):
+    """Check an assessment folder; exit 1 and list every problem if it is invalid."""
+    a = _load_or_exit(folder)
     typer.echo(
         f"OK: {len(a.criteria)} criteria, {len(a.evidence)} evidence, {len(a.findings)} findings"
     )
@@ -81,3 +87,17 @@ def init(folder: Annotated[Path, typer.Argument(help="Folder to create")]):
     for name, text in TEMPLATES.items():
         (folder / name).write_text(text)
     typer.echo(f"Created {folder}. Edit the files, then run: grc validate {folder}")
+
+
+@app.command()
+def report(
+    folder: Annotated[Path, typer.Argument(help="Assessment folder")],
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Write to a file")] = None,
+):
+    """Generate a Markdown report. Refuses to report on an invalid assessment."""
+    text = build_report(_load_or_exit(folder), date.today())
+    if output:
+        output.write_text(text)
+        typer.echo(f"Wrote {output}")
+    else:
+        typer.echo(text, nl=False)
