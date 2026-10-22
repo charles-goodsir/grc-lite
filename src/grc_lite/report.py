@@ -92,6 +92,16 @@ def build_report(a: Assessment, today: date) -> str:
         [[e.id, e.date, e.source, e.type.value, e.shows, e.reliability] for e in a.evidence],
     )
 
+    out += ["## Outstanding requests", ""]
+    waiting = [r for r in a.requests if r.outstanding]
+    if waiting:
+        out += _table(
+            ["ID", "Asked", "What", "Asked who", "Notes"],
+            [[r.id, r.asked, r.what, r.asked_who, r.notes] for r in waiting],
+        )
+    else:
+        out += ["None.", ""]
+
     open_items = [c for c in a.criteria if c.result in (Result.NOT_TESTED, Result.CANT_TEST)]
     out += ["## Open items", "", "Criteria not yet tested or that could not be tested.", ""]
     out += _table(

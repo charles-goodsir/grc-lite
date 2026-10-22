@@ -57,3 +57,14 @@ def test_cli_report_refuses_invalid_assessment(tmp_path):
     result = CliRunner().invoke(app, ["report", str(tmp_path)])
     assert result.exit_code == 1
     assert "# " not in result.stdout
+
+
+def test_outstanding_requests_listed_and_received_ones_not(tmp_path):
+    (tmp_path / "requests.yaml").write_text(
+        "- {id: R-01, asked: 2026-01-05, what: Open one, asked_who: CISO}\n"
+        "- {id: R-02, asked: 2026-01-05, what: Done one, asked_who: CISO, received: 2026-01-09}\n"
+    )
+    text = build_report(load(tmp_path), TODAY)
+    section = text.split("## Outstanding requests")[1].split("## Open items")[0]
+    assert "Open one" in section
+    assert "Done one" not in section
