@@ -1,6 +1,6 @@
 # grc-lite
 
-A small compliance-as-code tool for gap assessments. Criteria, evidence and findings live as YAML files in Git, a CLI validates them, and (next) a report is generated from them. It is framework-agnostic: a criterion's `source` can be any standard, policy or contract clause.
+A small compliance-as-code tool for gap assessments. Criteria, evidence and findings live as YAML files in Git, a CLI validates them, and `grc report` generates a Markdown report from them. It is framework-agnostic: a criterion's `source` can be any standard, policy or contract clause.
 
 **Fictional data only.** Nothing in this repo is real client data, and it never should be.
 
@@ -12,6 +12,7 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 .venv/bin/grc init my-assessment      # blank folder with commented templates
 .venv/bin/grc validate my-assessment  # exit 1 and every problem listed if invalid
 .venv/bin/grc validate data/example   # a fictional worked example
+.venv/bin/grc report data/example -o report.md  # Markdown report (omit -o to print)
 ```
 
 ## An assessment folder
@@ -25,10 +26,12 @@ Rating = likelihood x impact. Scale 3: 7-9 High, 4-6 Medium, 1-3 Low. Scale 5: 2
 `grc validate` checks field names and values, ID formats and uniqueness, that every evidence and criterion reference exists, that selected findings are complete, and that scores fit the scale. IDs should never be reused after deletion; that is not machine-checked yet.
 
 ## Status
-Phase 1 done: data model, validation, `grc init`, `grc validate`.
+Phases 1-2 done: data model, validation, `grc init`, `grc validate`, `grc report`.
+
+The report has a summary (criteria by result, findings by status and rating), a candidate-versus-selected table, selected findings sorted by rating, criteria, evidence, and open items. It refuses to run on invalid data. Convert to HTML or PDF with a tool like pandoc.
 
 ## Planned phases
-2. `grc report` (Markdown report)
+2. ~~`grc report`~~ done
 3. CI: tests, lint, dependency and secret scanning
 4. Import from the notes tool, request log, risk register
 5. Evidence collectors for Entra and Azure
