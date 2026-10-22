@@ -9,16 +9,18 @@ description = "Compliance-as-code for gap assessments"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
+    "fastapi>=0.115",
     "pydantic>=2",
     "pyyaml>=6",
     "typer>=0.12",
+    "uvicorn>=0.30",
 ]
 
 [project.scripts]
 grc = "grc_lite.cli:app"
 
 [project.optional-dependencies]
-dev = ["pytest", "ruff"]
+dev = ["httpx", "pytest", "ruff"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/grc_lite"]

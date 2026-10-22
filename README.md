@@ -17,6 +17,18 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 .venv/bin/grc collect leavers my-assessment --hr leavers.csv --users entra-users.json
 ```
 
+## Study app
+```bash
+.venv/bin/grc serve ~/projects/grc/levels/02-ashgrove
+```
+Opens a local page (`http://127.0.0.1:8765`) with your level's files on the left (Markdown, CSV as a sortable, filterable table, text), the open file in the middle, and notes on the right. Notes save to disk as you type, in `my-work/assessment/notes/` (or `--assessment PATH`), so they live in Git and not in the browser. This is the first part of the app; forms for criteria, evidence and findings, the report, and export come next.
+
+It is built to be safe to run on a laptop:
+- It listens on `127.0.0.1` only and refuses any request whose `Host` header is not localhost, which blocks DNS rebinding.
+- Every API call needs a random token created at startup, and writes must be JSON, so another web page cannot send writes to it.
+- Paths cannot leave the level folder, including through symlinks. `answer-key*` files, `CLAUDE.md`, dotfiles and the `graded/` and `my-work/` folders are never listed or served.
+- File content is drawn with DOM text nodes only, under a strict Content-Security-Policy, so a hostile line in a data-room file cannot run script.
+
 ## An assessment folder
 - `assessment.yaml`: name and risk `scale` (3 or 5), optional
 - `criteria.yaml`: what you test against, with `result` (`not tested`, `meets`, `gap`, `can't test`)
@@ -56,7 +68,8 @@ src/grc_lite/
   loader.py          reads the YAML files, reports every error, checks cross-references
   report.py          renders a loaded assessment as Markdown
   importer.py        converts a notes-tool export into assessment YAML
-  cli.py             Typer commands: init, validate, report, import-notes, collect
+  cli.py             Typer commands: init, validate, report, import-notes, collect, serve
+  web/               the local study app: app.py (server), files.py (path rules), static/ (page)
   collectors/
     compare.py       pure leavers and MFA comparisons (no I/O)
     sources.py       reads Graph JSON, users CSV and the HR leavers CSV
@@ -65,7 +78,7 @@ src/grc_lite/
 tests/               pytest, including a golden-file test of the example report
 data/example/        a fictional worked example
 ```
-Dependencies are Pydantic, PyYAML and Typer. Everything else is the standard library.
+Dependencies are Pydantic, PyYAML, Typer, FastAPI and uvicorn. Everything else is the standard library.
 
 ## CI
 Every PR and every push to `main` runs six checks, and all six are required before merge (admins included):
