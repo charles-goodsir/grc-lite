@@ -1,0 +1,21 @@
+- id: K-01
+  title: Former staff keep access to customer data
+  description: Leavers are not removed promptly, so former staff could sign in.
+  owner: IT Operations Manager
+  likelihood: 2
+  likelihood_reason: Three accounts stayed enabled for over a month with no detection.
+  impact: 3
+  impact_reason: The accounts could reach customer data.
+  treatment: mitigate
+  findings: [F-01]
+  criteria: [C-01]
+- id: K-02
+  title: Access rights drift without regular review
+  owner: IT Operations Manager
+  likelihood: 2
+  likelihood_reason: No review records have been produced yet.
+  impact: 2
+  impact_reason: Excess access would persist but is limited to internal systems.
+  treatment: accept
+  status: accepted
+  criteria: [C-03]

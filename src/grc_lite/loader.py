@@ -1,14 +1,20 @@
 """Load an assessment folder of YAML files and check it hangs together."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
 from pydantic import BaseModel, ValidationError
 
-from grc_lite.models import Criterion, Evidence, Finding, Meta
+from grc_lite.models import Criterion, Evidence, Finding, Meta, Request, Risk
 
-FILES = {"criteria": Criterion, "evidence": Evidence, "findings": Finding}
+FILES = {
+    "criteria": Criterion,
+    "evidence": Evidence,
+    "findings": Finding,
+    "requests": Request,
+    "risks": Risk,
+}
 
 
 class AssessmentError(Exception):
@@ -23,6 +29,8 @@ class Assessment:
     criteria: list[Criterion]
     evidence: list[Evidence]
     findings: list[Finding]
+    requests: list[Request] = field(default_factory=list)
+    risks: list[Risk] = field(default_factory=list)
 
 
 def _read(path: Path) -> object:
@@ -75,7 +83,7 @@ def load(folder: Path) -> Assessment:
     errors: list[str] = []
     meta_items = _parse_meta(folder / "assessment.yaml", errors)
     parsed = {n: _parse(folder / f"{n}.yaml", m, errors) for n, m in FILES.items()}
-    a = Assessment(meta_items, parsed["criteria"], parsed["evidence"], parsed["findings"])
+    a = Assessment(meta_items, **parsed)
 
     for name, items in parsed.items():
         _duplicates(name, items, errors)
@@ -101,13 +109,26 @@ def _check_references(a: Assessment, errors: list[str]) -> None:
         for ref in c.evidence:
             if ref not in evidence_ids:
                 errors.append(f"criteria.yaml: {c.id}: unknown evidence {ref}")
+    for r in a.requests:
+        if r.evidence and r.evidence not in evidence_ids:
+            errors.append(f"requests.yaml: {r.id}: unknown evidence {r.evidence}")
     for f in a.findings:
         for ref in f.criteria:
             if ref not in criteria_ids:
                 errors.append(f"findings.yaml: {f.id}: unknown criterion {ref}")
-        for field in ("likelihood", "impact"):
-            value = getattr(f, field)
+    finding_ids = {f.id for f in a.findings}
+    for k in a.risks:
+        for ref in k.findings:
+            if ref not in finding_ids:
+                errors.append(f"risks.yaml: {k.id}: unknown finding {ref}")
+        for ref in k.criteria:
+            if ref not in criteria_ids:
+                errors.append(f"risks.yaml: {k.id}: unknown criterion {ref}")
+    scored = [("findings.yaml", f) for f in a.findings] + [("risks.yaml", k) for k in a.risks]
+    for filename, item in scored:
+        for score in ("likelihood", "impact"):
+            value = getattr(item, score)
             if value is not None and not 1 <= value <= a.meta.scale:
                 errors.append(
-                    f"findings.yaml: {f.id}: {field} {value} is outside the 1-{a.meta.scale} scale"
+                    f"{filename}: {item.id}: {score} {value} is outside the 1-{a.meta.scale} scale"
                 )

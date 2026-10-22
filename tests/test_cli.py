@@ -12,7 +12,7 @@ def test_init_then_validate_passes(tmp_path):
     assert runner.invoke(app, ["init", str(target)]).exit_code == 0
     result = runner.invoke(app, ["validate", str(target)])
     assert result.exit_code == 0
-    assert "OK: 0 criteria, 0 evidence, 0 findings" in result.output
+    assert "OK: 0 criteria, 0 evidence, 0 findings, 0 requests, 0 risks" in result.output
 
 
 def test_init_refuses_non_empty_folder(tmp_path):
@@ -31,4 +31,4 @@ def test_shipped_example_is_valid():
     example = Path(__file__).parent.parent / "data" / "example"
     result = runner.invoke(app, ["validate", str(example)])
     assert result.exit_code == 0, result.output
-    assert "OK: 3 criteria, 3 evidence, 3 findings" in result.output
+    assert "OK: 3 criteria, 3 evidence, 3 findings, 2 requests, 2 risks" in result.output

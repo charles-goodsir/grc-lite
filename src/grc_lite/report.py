@@ -92,6 +92,49 @@ def build_report(a: Assessment, today: date) -> str:
         [[e.id, e.date, e.source, e.type.value, e.shows, e.reliability] for e in a.evidence],
     )
 
+    out += ["## Risk register", ""]
+    if a.risks:
+        ranked = sorted(a.risks, key=lambda k: (-k.likelihood * k.impact, k.id))
+        out += _table(
+            [
+                "ID",
+                "Risk",
+                "Rating",
+                "Likelihood",
+                "Impact",
+                "Treatment",
+                "Status",
+                "Owner",
+                "Links",
+            ],
+            [
+                [
+                    k.id,
+                    k.title,
+                    rating(k.likelihood, k.impact, scale),
+                    k.likelihood,
+                    k.impact,
+                    k.treatment.value,
+                    k.status.value,
+                    k.owner,
+                    ", ".join([*k.findings, *k.criteria]),
+                ]
+                for k in ranked
+            ],
+        )
+    else:
+        out += ["None.", ""]
+
+    out += ["## Outstanding requests", ""]
+    waiting = [r for r in a.requests if r.outstanding]
+    if waiting:
+        out += _table(
+            ["ID", "Asked", "What", "Asked who", "Notes"],
+            [[r.id, r.asked, r.what, r.asked_who, r.notes] for r in waiting],
+        )
+    else:
+        out += ["None.", ""]
+
     open_items = [c for c in a.criteria if c.result in (Result.NOT_TESTED, Result.CANT_TEST)]
     out += ["## Open items", "", "Criteria not yet tested or that could not be tested.", ""]
     out += _table(

@@ -9,6 +9,8 @@ from pydantic import BaseModel, ConfigDict, StringConstraints, model_validator
 CriterionId = Annotated[str, StringConstraints(pattern=r"^C-\d+$")]
 EvidenceId = Annotated[str, StringConstraints(pattern=r"^E-\d+$")]
 FindingId = Annotated[str, StringConstraints(pattern=r"^F-\d+$")]
+RiskId = Annotated[str, StringConstraints(pattern=r"^K-\d+$")]
+RequestId = Annotated[str, StringConstraints(pattern=r"^R-\d+$")]
 Text = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
 
 
@@ -36,6 +38,19 @@ class Strength(str, Enum):
     STRONG = "strong"
     MEDIUM = "medium"
     WEAK = "weak"
+
+
+class Treatment(str, Enum):
+    MITIGATE = "mitigate"
+    ACCEPT = "accept"
+    TRANSFER = "transfer"
+    AVOID = "avoid"
+
+
+class RiskStatus(str, Enum):
+    OPEN = "open"
+    ACCEPTED = "accepted"
+    CLOSED = "closed"
 
 
 class _Base(BaseModel):
@@ -103,6 +118,41 @@ class Finding(_Base):
             if missing:
                 raise ValueError(f"selected finding is missing: {', '.join(missing)}")
         return self
+
+
+class Request(_Base):
+    id: RequestId
+    asked: date
+    what: Text
+    asked_who: Text
+    received: date | None = None
+    evidence: EvidenceId | None = None  # the evidence item the answer became
+    notes: str = ""
+
+    @model_validator(mode="after")
+    def _received_after_asked(self):
+        if self.received and self.received < self.asked:
+            raise ValueError("received is before asked")
+        return self
+
+    @property
+    def outstanding(self) -> bool:
+        return self.received is None
+
+
+class Risk(_Base):
+    id: RiskId
+    title: Text
+    description: str = ""
+    owner: Text
+    likelihood: int
+    likelihood_reason: Text
+    impact: int
+    impact_reason: Text
+    treatment: Treatment
+    status: RiskStatus = RiskStatus.OPEN
+    findings: list[FindingId] = []
+    criteria: list[CriterionId] = []
 
 
 class Meta(_Base):
