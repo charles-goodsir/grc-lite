@@ -1,0 +1,9 @@
+{
+  "value": [
+    {"userPrincipalName": "admin1@acme.example", "isAdmin": true, "isMfaRegistered": true},
+    {"userPrincipalName": "admin2@acme.example", "isAdmin": true, "isMfaRegistered": false},
+    {"userPrincipalName": "oldadmin@acme.example", "isAdmin": true, "isMfaRegistered": false},
+    {"userPrincipalName": "amy.reed@acme.example", "isAdmin": false, "isMfaRegistered": true},
+    {"userPrincipalName": "cat.lee@acme.example", "isAdmin": false, "isMfaRegistered": false}
+  ]
+}
