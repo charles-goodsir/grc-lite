@@ -5,6 +5,7 @@ import { searchTab } from "./search.js";
 import { coverageTab } from "./coverage.js";
 import { exportTab } from "./export.js";
 import { gradingTab } from "./grading.js";
+import { progressTab } from "./progress.js";
 import { KINDS, LABELS, on, problemsTab, recordsTab, reportTab, store } from "./records.js";
 
 // Everything shown from a file is built with DOM text nodes, never innerHTML,
@@ -138,6 +139,7 @@ const TABS = [
   { id: "report", label: "Report", render: reportTab },
   { id: "export", label: "Export", render: () => exportTab(() => showTab("export")) },
   { id: "grading", label: "Grading", render: () => gradingTab(nav) },
+  { id: "progress", label: "Progress", render: progressTab },
   { id: "problems", label: "Problems", render: problemsTab },
 ];
 let activeTab = "notes";
