@@ -1,0 +1,83 @@
+"""Command line interface: `grc validate` and `grc init`."""
+
+from pathlib import Path
+from typing import Annotated
+
+import typer
+
+from grc_lite.loader import AssessmentError, load
+
+app = typer.Typer(help="Compliance-as-code for gap assessments.", no_args_is_help=True)
+
+TEMPLATES = {
+    "assessment.yaml": "name: My assessment\nscale: 3  # risk scale: 3 (1-3) or 5 (1-5)\n",
+    "criteria.yaml": """\
+# What you test against. source can be any framework, policy or contract clause.
+# result: not tested | meets | gap | can't test
+# - id: C-01
+#   source: Access Control Policy 4.1
+#   rule: Leavers lose access within 24 hours
+#   evidence_needed: HR leavers list and account disable log
+#   evidence: [E-01]
+#   result: not tested
+[]
+""",
+    "evidence.yaml": """\
+# What you looked at. type: system | document | observation | interview
+# - id: E-01
+#   date: 2026-01-05
+#   source: HR leavers export
+#   type: system
+#   shows: Three leavers still enabled after 30 days
+#   reliability: Exported by the assessor, not the system owner
+[]
+""",
+    "findings.yaml": """\
+# status: candidate | selected | dropped. Selected findings need every field below.
+# - id: F-01
+#   title: Leavers keep access
+#   status: selected
+#   strength: strong        # strong | medium | weak
+#   strength_reason: System export matches the HR list
+#   criteria: [C-01]
+#   condition: What you found
+#   cause: Why it happened (optional)
+#   consequence: Why it matters
+#   action: What should change
+#   owner: IT Operations
+#   due: 2026-06-30
+#   likelihood: 2
+#   likelihood_reason: One sentence
+#   impact: 3
+#   impact_reason: One sentence
+#   control_ref: optional
+[]
+""",
+}
+
+
+@app.command()
+def validate(folder: Annotated[Path, typer.Argument(help="Assessment folder")]):
+    """Check an assessment folder; exit 1 and list every problem if it is invalid."""
+    try:
+        a = load(folder)
+    except AssessmentError as e:
+        for line in e.errors:
+            typer.echo(f"error: {line}", err=True)
+        typer.echo(f"{len(e.errors)} error(s)", err=True)
+        raise typer.Exit(1)
+    typer.echo(
+        f"OK: {len(a.criteria)} criteria, {len(a.evidence)} evidence, {len(a.findings)} findings"
+    )
+
+
+@app.command()
+def init(folder: Annotated[Path, typer.Argument(help="Folder to create")]):
+    """Create a blank assessment folder with commented templates."""
+    if folder.exists() and any(folder.iterdir()):
+        typer.echo(f"error: {folder} is not empty", err=True)
+        raise typer.Exit(1)
+    folder.mkdir(parents=True, exist_ok=True)
+    for name, text in TEMPLATES.items():
+        (folder / name).write_text(text)
+    typer.echo(f"Created {folder}. Edit the files, then run: grc validate {folder}")
