@@ -1,4 +1,6 @@
 """Command line interface: `grc init`, `grc validate` and `grc report`."""
+import os
+
 
 from datetime import date
 from pathlib import Path
