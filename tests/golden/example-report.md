@@ -73,11 +73,16 @@ Generated 2026-03-10 | risk scale 1-3
 
 ## Risk register
 
-None.
+| ID | Risk | Rating | Likelihood | Impact | Treatment | Status | Owner | Links |
+|---|---|---|---|---|---|---|---|---|
+| K-01 | Former staff keep access to customer data | Medium | 2 | 3 | mitigate | open | IT Operations Manager | F-01, C-01 |
+| K-02 | Access rights drift without regular review | Medium | 2 | 2 | accept | accepted | IT Operations Manager | C-03 |
 
 ## Outstanding requests
 
-None.
+| ID | Asked | What | Asked who | Notes |
+|---|---|---|---|---|
+| R-02 | 2026-03-04 | Signed access review records for the last two review periods. | IT Operations Manager | Chased on 2026-03-09; still waiting. |
 
 ## Open items
 

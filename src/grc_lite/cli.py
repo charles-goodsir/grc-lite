@@ -57,6 +57,33 @@ TEMPLATES = {
 #   control_ref: optional
 []
 """,
+    "requests.yaml": """\
+# Evidence you asked the client for. No received date means still outstanding.
+# - id: R-01
+#   asked: 2026-01-05
+#   what: Q3 access review record
+#   asked_who: CISO
+#   received: 2026-01-12   # optional
+#   evidence: E-04         # optional: the evidence item it became
+#   notes: optional
+[]
+""",
+    "risks.yaml": """\
+# Risks you want tracked beyond the findings. Rating = likelihood x impact.
+# treatment: mitigate | accept | transfer | avoid    status: open | accepted | closed
+# - id: K-01
+#   title: Former staff keep access
+#   owner: IT Operations Manager
+#   likelihood: 2
+#   likelihood_reason: One sentence
+#   impact: 3
+#   impact_reason: One sentence
+#   treatment: mitigate
+#   status: open
+#   findings: [F-01]
+#   criteria: [C-01]
+[]
+""",
 }
 
 
@@ -75,7 +102,8 @@ def validate(folder: Annotated[Path, typer.Argument(help="Assessment folder")]):
     """Check an assessment folder; exit 1 and list every problem if it is invalid."""
     a = _load_or_exit(folder)
     typer.echo(
-        f"OK: {len(a.criteria)} criteria, {len(a.evidence)} evidence, {len(a.findings)} findings"
+        f"OK: {len(a.criteria)} criteria, {len(a.evidence)} evidence, {len(a.findings)} findings, "
+        f"{len(a.requests)} requests, {len(a.risks)} risks"
     )
 
 
