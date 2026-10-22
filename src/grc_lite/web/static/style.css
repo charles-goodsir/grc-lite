@@ -1,0 +1,56 @@
+:root {
+  --bg: #f5f6f4; --surface: #ffffff; --surface-2: #eceee9; --ink: #1a1e22; --muted: #5d656b;
+  --line: #d6d9d3; --accent: #1f6f5c; --accent-soft: #e0ede8; --warn: #96591a; --danger: #8a3232;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #15181b; --surface: #1c2024; --surface-2: #242a2e; --ink: #e9ecea; --muted: #959ca1;
+    --line: #333a40; --accent: #5ac7ab; --accent-soft: #1d2f2a; --warn: #e0a458; --danger: #e08080;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 system-ui, sans-serif; }
+#app { display: grid; grid-template-columns: 260px minmax(0, 1fr) minmax(300px, 420px); height: 100%; }
+@media (max-width: 900px) { #app { grid-template-columns: 1fr; grid-auto-rows: minmax(240px, auto); height: auto; } }
+#side, #right { background: var(--surface); overflow: auto; min-height: 0; }
+#side { border-right: 1px solid var(--line); }
+#right { border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+#view { overflow: auto; padding: 20px 28px; min-width: 0; }
+.side-head { padding: 12px; position: sticky; top: 0; background: var(--surface); border-bottom: 1px solid var(--line); display: grid; gap: 8px; }
+.side-head input { width: 100%; padding: 6px 8px; font: inherit; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); }
+#files .item { padding: 6px 12px; cursor: pointer; font-size: 13.5px; overflow-wrap: anywhere; display: flex; gap: 8px; align-items: baseline; }
+#files .item:hover { background: var(--surface-2); }
+#files .item.on { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+#files .item .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); flex: none; visibility: hidden; }
+#files .item .dot.has { visibility: visible; }
+.empty { color: var(--muted); }
+#tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 8px; border-bottom: 1px solid var(--line); }
+#tabs button { font: inherit; padding: 4px 10px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); border-radius: 4px; cursor: pointer; }
+#tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--accent); border-color: var(--accent); font-weight: 600; }
+#panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+#notes-text { flex: 1; width: 100%; border: 0; padding: 14px; font: 14px/1.5 ui-monospace, monospace; resize: none; background: var(--surface); color: var(--ink); }
+.status { padding: 6px 14px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+.status.bad { color: var(--danger); font-weight: 600; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, .item:focus-visible, th:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* rendered markdown */
+.md h1, .md h2, .md h3, .md h4 { line-height: 1.25; margin: 1.2em 0 .5em; }
+.md h1 { font-size: 1.6rem; } .md h2 { font-size: 1.3rem; } .md h3 { font-size: 1.1rem; }
+.md p, .md ul, .md ol, .md table, .md pre, .md blockquote { margin: 0 0 1em; }
+.md code { font: 13px ui-monospace, monospace; background: var(--surface-2); padding: 1px 4px; border-radius: 3px; }
+.md pre { background: var(--surface-2); padding: 10px 12px; border-radius: 6px; overflow: auto; }
+.md pre code { background: none; padding: 0; }
+.md blockquote { border-left: 3px solid var(--line); padding-left: 12px; color: var(--muted); }
+.md hr { border: 0; border-top: 1px solid var(--line); margin: 1.2em 0; }
+.md table, .data table { border-collapse: collapse; font-size: 14px; }
+.md th, .md td, .data th, .data td { border: 1px solid var(--line); padding: 5px 9px; text-align: left; vertical-align: top; }
+.md th, .data th { background: var(--surface-2); }
+/* csv view */
+.data .bar { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; flex-wrap: wrap; }
+.data .bar input { padding: 6px 8px; font: inherit; border: 1px solid var(--line); border-radius: 4px; background: var(--surface); color: var(--ink); min-width: 220px; }
+.data .count { color: var(--muted); font-size: 13px; }
+.data .scroll { overflow: auto; max-width: 100%; }
+.data th { cursor: pointer; position: sticky; top: 0; white-space: nowrap; }
+.data th[aria-sort="ascending"]::after { content: " \25B2"; font-size: 10px; }
+.data th[aria-sort="descending"]::after { content: " \25BC"; font-size: 10px; }
+pre.plain { white-space: pre-wrap; font: 13.5px/1.5 ui-monospace, monospace; }

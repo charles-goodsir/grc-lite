@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="grc-token" content="__TOKEN__">
+  <title>grc-lite</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div id="app">
+    <aside id="side">
+      <div class="side-head">
+        <strong id="level-name">grc-lite</strong>
+        <input id="filter" type="search" placeholder="Filter files" aria-label="Filter files">
+      </div>
+      <div id="files" role="listbox" aria-label="Files"></div>
+    </aside>
+    <main id="view" aria-live="polite"><p class="empty">Pick a file on the left.</p></main>
+    <aside id="right">
+      <div id="tabs" role="tablist"></div>
+      <div id="panel"></div>
+    </aside>
+  </div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

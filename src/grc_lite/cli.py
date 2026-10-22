@@ -1,4 +1,4 @@
-"""Command line interface: `grc init`, `grc validate`, `grc report`, `grc import-notes` and `grc collect`."""
+"""Command line interface: `grc init`, `grc validate`, `grc report`, `grc import-notes`, `grc collect` and `grc serve`."""
 
 from datetime import date, datetime
 from pathlib import Path
@@ -259,3 +259,30 @@ def collect_mfa(
         else f"Entra ID MFA registration report ({registrations.name})"
     )
     _finish(folder, result, "mfa", when, source, {"scope": scope}, criterion)
+
+
+@app.command()
+def serve(
+    level: Annotated[Path, typer.Argument(help="Level folder with the files to study")],
+    assessment: Annotated[Path | None, typer.Option(help="Where your work is saved")] = None,
+    port: Annotated[int, typer.Option(help="Port on 127.0.0.1")] = 8765,
+    open_browser: Annotated[bool, typer.Option("--open/--no-open")] = True,
+):
+    """Open the study app for a level in your browser. Only this computer can reach it."""
+    import threading
+    import webbrowser
+
+    import uvicorn
+
+    from grc_lite.web.app import create_app
+
+    if not level.is_dir():
+        typer.echo(f"error: {level} is not a folder", err=True)
+        raise typer.Exit(1)
+    work = assessment or level / "my-work" / "assessment"
+    url = f"http://127.0.0.1:{port}/"
+    typer.echo(f"Serving {level.resolve().name} at {url}  (Ctrl+C to stop)")
+    typer.echo(f"Your work is saved in {work}")
+    if open_browser:
+        threading.Timer(1.0, webbrowser.open, [url]).start()
+    uvicorn.run(create_app(level, work), host="127.0.0.1", port=port, log_level="warning")
