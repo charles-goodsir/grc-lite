@@ -25,14 +25,26 @@ Rating = likelihood x impact. Scale 3: 7-9 High, 4-6 Medium, 1-3 Low. Scale 5: 2
 
 `grc validate` checks field names and values, ID formats and uniqueness, that every evidence and criterion reference exists, that selected findings are complete, and that scores fit the scale. IDs should never be reused after deletion; that is not machine-checked yet.
 
+## CI
+Every PR and every push to `main` runs six checks, and all six are required before merge (admins included):
+
+- `test` on Python 3.10, 3.12 and 3.14, plus `grc validate` and `grc report` on the example
+- `lint`: `ruff check` and `ruff format --check`
+- `audit`: `pip-audit` on the installed dependencies
+- `secrets`: gitleaks over the history that would merge
+
+Actions are pinned to commit SHAs, the gitleaks binary is checksum-verified, and Dependabot proposes updates weekly.
+
+Each control was proved by a throwaway PR that should fail only its own check, then closed unmerged: a broken golden test failed `test`, an unused import failed `lint`, a pinned `jinja2==3.1.2` failed `audit`, and a fake AWS key failed `secrets`. The first secret proof exposed a bug: the scan covered every branch, so one leak failed unrelated PRs. It is now limited to the checked-out history, and a second pair of PRs (one with a fake key, one harmless) showed only the key PR going red.
+
 ## Status
-Phases 1-2 done: data model, validation, `grc init`, `grc validate`, `grc report`.
+Phases 1-3 done: data model, validation, `grc init`, `grc validate`, `grc report`, CI.
 
 The report has a summary (criteria by result, findings by status and rating), a candidate-versus-selected table, selected findings sorted by rating, criteria, evidence, and open items. It refuses to run on invalid data. Convert to HTML or PDF with a tool like pandoc.
 
 ## Planned phases
 2. ~~`grc report`~~ done
-3. CI: tests, lint, dependency and secret scanning
+3. ~~CI: tests, lint, dependency and secret scanning~~ done
 4. Import from the notes tool, request log, risk register
 5. Evidence collectors for Entra and Azure
 
