@@ -17,7 +17,7 @@ from grc_lite.grading import TAGS
 from grc_lite.importer import file_notes
 from grc_lite.loader import AssessmentError, load
 from grc_lite.report import build_report
-from grc_lite.web import export, files, grades, records, search
+from grc_lite.web import export, files, grades, progress, records, search
 
 STATIC = Path(__file__).parent / "static"
 CSP = (
@@ -62,7 +62,9 @@ class MetaIn(BaseModel):
     slots: int
 
 
-def create_app(level: Path, assessment: Path, token: str | None = None) -> FastAPI:
+def create_app(
+    level: Path, assessment: Path, token: str | None = None, levels: Path | None = None
+) -> FastAPI:
     token = token or secrets.token_urlsafe(32)
     app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
@@ -216,6 +218,11 @@ def create_app(level: Path, assessment: Path, token: str | None = None) -> FastA
         if done is None:
             raise HTTPException(404, "no such mistake")
         return done
+
+    @app.get("/api/progress")
+    def progress_across_levels():
+        root = levels if levels is not None else level.resolve().parent
+        return progress.progress(root, level, assessment)
 
     @app.post("/api/submit")
     def submit():
