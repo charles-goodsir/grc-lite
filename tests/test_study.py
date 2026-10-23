@@ -135,3 +135,45 @@ def test_coverage_endpoint(client):
     body = client.get("/api/coverage", headers=AUTH).json()
     assert body["criteria_without_evidence"] == ["C-01"] and body["not_tested"] == ["C-01"]
     assert client.get("/api/coverage").status_code == 401
+
+
+def test_coach_endpoint_reports_checks_findings_and_your_history(tmp_path):
+    import yaml
+
+    root = tmp_path / "levels"
+    for name in ("01-done", "02-now"):
+        (root / name).mkdir(parents=True)
+        (root / name / "01-scope.md").write_text("scope")
+    done = root / "01-done" / "my-work" / "assessment"
+    done.mkdir(parents=True)
+    grading = {
+        "title": "g",
+        "planted": [],
+        "mistakes": [{"id": "M-01", "source": "s", "text": "t", "tag": "cause missing"}],
+    }
+    (done / "grading.yaml").write_text(yaml.safe_dump(grading))
+    level = root / "02-now"
+    client = TestClient(
+        create_app(level, level / "my-work" / "assessment", token=TOKEN),
+        base_url="http://127.0.0.1:8765",
+    )
+    client.post(
+        "/api/records/findings",
+        json={
+            "fields": {
+                "title": "t",
+                "status": "selected",
+                "strength": "strong",
+                "strength_reason": "r",
+            }
+        },
+        headers=JSON,
+    )
+    body = client.get("/api/coach", headers=AUTH).json()
+    checks = {c["key"]: c for c in body["checks"]}
+    assert checks["problems"]["status"] == "fix" and checks["coach"]["ids"] == ["F-01"]
+    assert [r["tag"] for r in body["reminders"]] == [
+        "cause missing"
+    ]  # from the other level's grading
+    assert {i["rule"] for i in body["findings"]["F-01"]} >= {"cause_missing"}
+    assert client.get("/api/coach").status_code == 401
