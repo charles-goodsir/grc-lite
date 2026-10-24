@@ -21,6 +21,11 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 ## Study app
 `grc serve <level>` opens a local page (`http://127.0.0.1:8765`). Your level's files are on the left (Markdown, CSV as a sortable, filterable table, text), the open file is in the middle, and tabs are on the right. Your work saves as you type, as the same YAML files the CLI reads, in `<level>/my-work/assessment/` (or `--assessment PATH`), so `grc validate`, `grc report` and Git work on what you log.
 
+**Layout**
+- A top bar with **Files** (hide the file list), **Reading mode** (hide both side panels, press Esc to leave) and a **Theme** switch (system, light, dark). The two dividers can be dragged, or focused and moved with the left and right arrow keys, and your widths and theme are remembered in the browser.
+- The tabs are grouped as Work, Review, Find and Finish.
+- A **level stepper** above the tabs follows the playbook: read the scope, pull out the rules, test them, log what's missing, write findings, submit and review. Steps tick themselves from what you have logged, the current one is highlighted, and each step takes you to the right place.
+
 **Working through a level**
 - **Notes** for the open file.
 - **Criteria, Evidence, Findings, Requests, Risks:** forms with the notes tool's fields. Evidence and criteria are picked from lists, findings show a live rating and what a selected finding still lacks, and the scale (1-3 or 1-5) and slots are set on the Findings tab. A **?** beside the main fields shows a short reminder from the playbook.
@@ -36,7 +41,7 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 - **Import:** reads a notes-tool `notes.md` into an empty assessment, including your per-file notes. It lists anything it could not map and refuses to overwrite existing records.
 - **Submit and lock:** writes `submission.md` (the notes-tool format, so `grc import-notes` reads it back), records its SHA-256 in `submitted.yaml`, and turns editing off. You then send the file to be reviewed. The Export tab shows whether the file and your records still match what you submitted.
 - **Grading:** import the grading file you get back (layout in [docs/grading-format.md](docs/grading-format.md)). It shows a scoreboard of planted gaps, the summary, what went well and what to do next time. The grader's notes appear on your own criteria, evidence and findings. Each miss and each "for next time" point goes in a mistake log with a tag you can change. Only then do the answer key and `graded/` files appear in the file list.
-- **Progress:** every level's status (not started, in progress, submitted, graded), planted gaps caught, ratings that were off, and your mistakes counted by tag across levels. It looks at the folders next to the one you serve, or at `--levels PATH`. For each it reads one file, `my-work/assessment/grading.yaml`, and only checks that `submitted.yaml` exists.
+- **Progress:** every level's status (not started, in progress, submitted, graded), planted gaps caught, ratings that were off, a trend of caught percentage per graded level, and your mistakes counted by tag across levels. It looks at the folders next to the one you serve, or at `--levels PATH`. For each it reads one file, `my-work/assessment/grading.yaml`, and only checks that `submitted.yaml` exists.
 
 The lock and the answer-key reveal are commitments to yourself, not security controls: deleting `submitted.yaml` reopens a level, and deleting `grading.yaml` seals the key again.
 
@@ -106,7 +111,7 @@ src/grc_lite/
     sources.py       reads Graph JSON, users CSV and the HR leavers CSV
     graph.py         read-only Microsoft Graph client on the standard library
     record.py        appends the evidence entry and writes the private detail file
-tests/               217 tests, including a golden-file test of the example report
+tests/               320+ tests, including a golden-file test of the example report and a check that the page code never parses HTML from a string
 data/example/        a fictional worked example
 docs/                the grading file format
 ```
@@ -129,6 +134,7 @@ Each CI control was proved by a throwaway PR that should fail only its own check
 - **The importer said "Validation passed" on an export with no tables.** It now warns about each missing section.
 - **A real export had a typo in a file name** (`suplier-policy`), which the "Rule N, file" matching could not resolve. The importer now also matches a finding's quoted rule text against the criteria.
 - **A real level folder held a file I had not planned for.** Serving a scratch copy of a level showed its `CLAUDE.md` (the grader's rules) in the file list. It is now always hidden.
+- **The progress bars were silently wrong.** They were sized with a style attribute, which the page's strict CSP blocks, so every bar drew full width. The polish pass found it by checking the page's real behaviour. They are now sized through the DOM, and a test bans style attributes, `innerHTML` and similar patterns in the page code.
 - **Tests that passed for the wrong reason.** Three times a test proved nothing: an "IDs never reused" test whose deletes had silently failed with a 415, a symlink test that pointed at an invalid file so following the link looked the same as refusing it, and a break-the-control check whose pattern did not match the code. Each was found by checking that the test really fails when the control is removed, and rebuilt.
 
 ## Known shortcuts
