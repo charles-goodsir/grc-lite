@@ -1,0 +1,11 @@
+- id: R-01
+  asked: 2026-10-14
+  what: The supplier register, with a risk rating for each supplier, and the contract terms for the two most important suppliers.
+  asked_who: Operations manager
+  notes: Chased on 2026-10-21. The operations manager says the register is held by procurement.
+- id: R-02
+  asked: 2026-10-15
+  what: The Statement of Applicability and the last internal audit report.
+  asked_who: Information security manager
+  received: 2026-10-16
+  evidence: E-09

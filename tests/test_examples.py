@@ -20,7 +20,7 @@ def raw(folder):
 
 
 def test_the_examples_are_found():
-    assert {p.name for p in EXAMPLES} >= {"example", "essential-eight"}
+    assert {p.name for p in EXAMPLES} >= {"example", "essential-eight", "iso27001-starter"}
 
 
 @pytest.mark.parametrize("folder", EXAMPLES, ids=lambda p: p.name)
@@ -69,3 +69,34 @@ def test_essential_eight_rules_are_short_paraphrases_not_pasted_passages():
     for c in records.read_records(DATA / "essential-eight", "criteria"):
         assert len(c["rule"]) <= 260, f"{c['id']} is long enough to be a quotation"
         assert not re.search(r"\bis used to\b.*\bis used to\b", c["rule"])
+
+
+ISO_SOURCE = re.compile(
+    r"^ISO/IEC 27001:2022 (Annex A, A\.[5-8]\.\d{1,2} \S|clause \d+\.\d+(\.\d+)? \S)"
+)
+
+
+def test_iso_example_cites_the_standard_by_control_or_clause_and_keeps_rules_short():
+    criteria = records.read_records(DATA / "iso27001-starter", "criteria")
+    assert len(criteria) >= 10
+    for c in criteria:
+        assert ISO_SOURCE.match(c["source"]), (
+            f"{c['id']} does not name the standard and a control or clause"
+        )
+        assert len(c["rule"]) <= 260, f"{c['id']} is long enough to be a quotation"
+    assert len({c["source"] for c in criteria}) == len(criteria)  # one control or clause each
+
+
+def test_iso_example_includes_the_management_system_clauses_not_only_controls():
+    sources = " ".join(
+        c["source"] for c in records.read_records(DATA / "iso27001-starter", "criteria")
+    )
+    assert "clause 6.1.3" in sources and "clause 9.2" in sources
+
+
+def test_the_iso_notes_say_the_standard_was_not_read_and_name_the_sources():
+    notes = (Path(__file__).parent.parent / "docs" / "iso27001-starter.md").read_text()
+    assert (
+        "I did not read the standard" in notes and "hightable.io" in notes and "haitmg.pl" in notes
+    )
+    assert "not an audit" in notes.lower()

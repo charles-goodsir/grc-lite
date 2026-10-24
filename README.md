@@ -14,6 +14,7 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 .venv/bin/grc validate my-assessment  # exit 1 and every problem listed if invalid
 .venv/bin/grc validate data/example   # a fictional worked example
 .venv/bin/grc validate data/essential-eight   # a fictional Essential Eight assessment
+.venv/bin/grc validate data/iso27001-starter   # a fictional ISO 27001 starter assessment
 .venv/bin/grc report data/example -o report.md  # Markdown report (omit -o to print)
 .venv/bin/grc import-notes notes.md my-assessment  # convert a notes-tool export, then validate
 .venv/bin/grc collect leavers my-assessment --hr leavers.csv --users entra-users.json
@@ -115,10 +116,11 @@ src/grc_lite/
     sources.py       reads Graph JSON, users CSV and the HR leavers CSV
     graph.py         read-only Microsoft Graph client on the standard library
     record.py        appends the evidence entry and writes the private detail file
-tests/               370+ tests, including a golden-file test of the example report and a check that the page code never parses HTML from a string
+tests/               380+ tests, including a golden-file test of the example report and a check that the page code never parses HTML from a string
 data/example/        a fictional worked example
 data/essential-eight/  a fictional Essential Eight assessment at Maturity Level One (see docs/essential-eight.md)
-docs/                the grading file format, the Essential Eight notes, the live test runbook
+data/iso27001-starter/  a fictional ISO 27001 starter assessment: ten Annex A controls and two clauses (see docs/iso27001-starter.md)
+docs/                the grading file format, the Essential Eight and ISO 27001 notes, the live test runbook
 ```
 Dependencies are Pydantic, PyYAML, Typer, FastAPI and uvicorn. Excel export needs the optional `openpyxl`; the tests also use `httpx`. Everything else is the standard library.
 

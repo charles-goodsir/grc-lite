@@ -1,0 +1,95 @@
+- id: F-01
+  title: Leavers keep their accounts
+  status: selected
+  strength: strong
+  strength_reason: Two exports taken by the assessor agree, and the checklist confirms there is no removal step.
+  criteria: [C-01]
+  condition: 4 of 11 leavers (36%) in the last quarter still have enabled accounts, and the leaver checklist has no step for removing accounts (E-01).
+  cause: HR tells IT about leavers by email, and the checklist was written for equipment return only.
+  consequence: Former staff could still sign in to systems that hold client data.
+  action: Add account removal to the leaver checklist, and send a weekly list of leavers from HR to IT for checking.
+  owner: IT lead
+  due: 2026-12-04
+  likelihood: 3
+  likelihood_reason: The accounts are already enabled today, some for weeks.
+  impact: 3
+  impact_reason: The systems hold client data, so a former employee could read or copy it.
+  control_ref: ISO/IEC 27001:2022 A.6.5
+- id: F-02
+  title: Access rights have not been reviewed for 14 months
+  status: selected
+  strength: strong
+  strength_reason: The review records are the company's own and the owner confirmed no later review.
+  criteria: [C-03]
+  condition: The policy requires a review every 6 months, but the last review is 14 months old and covered 2 of the 5 main systems (E-03).
+  cause: Reviews depend on one person and have no calendar reminder.
+  consequence: Access that is no longer needed stays in place, which is how the leaver accounts in F-01 went unnoticed.
+  action: Review all 5 systems this quarter, then schedule the review twice a year with a named backup owner.
+  owner: Information security manager
+  due: 2026-12-18
+  likelihood: 2
+  likelihood_reason: Excess access has built up over 14 months, but no misuse is known.
+  impact: 2
+  impact_reason: Most of the five systems hold internal rather than client data.
+  control_ref: ISO/IEC 27001:2022 A.5.18
+- id: F-03
+  title: Nobody reviews the security logs
+  status: selected
+  strength: medium
+  strength_reason: The settings are exported, but how often logs are read rests on the IT lead's account.
+  criteria: [C-07]
+  condition: Security logs are read only after a problem is reported, and they are kept for 14 days, so anything older is gone (E-07).
+  cause: No one is assigned to review logs, and the retention was set to the default.
+  consequence: A breach older than two weeks could not be investigated, and a slow attack could go unseen.
+  action: Keep security logs for at least 6 months, and assign a weekly review with a short record.
+  owner: IT lead
+  due: 2027-01-29
+  likelihood: 2
+  likelihood_reason: A slow attack would be missed, but no incident is known.
+  impact: 3
+  impact_reason: Without logs the company could not tell clients what was accessed.
+  control_ref: ISO/IEC 27001:2022 A.8.15
+- id: F-04
+  title: The Statement of Applicability excludes 13 controls with no reason
+  status: selected
+  strength: strong
+  strength_reason: The document is the company's own and the counts are on its face.
+  criteria: [C-11]
+  condition: The Statement of Applicability marks 80 of 93 Annex A controls as applicable, and the 13 exclusions have no stated reason (E-09).
+  cause: The Statement was copied from a template and never tied to the risk assessment.
+  consequence: The company cannot show that a missing control was a risk decision and not an oversight, and an auditor would raise it.
+  action: Record a reason for each of the 13 exclusions from the risk assessment, and add the Statement to the yearly review.
+  owner: Information security manager
+  due: 2026-12-11
+  likelihood: 2
+  likelihood_reason: An outside audit would find it, though the company may well have good reasons.
+  impact: 2
+  impact_reason: It affects certification and trust rather than directly causing a loss.
+  control_ref: ISO/IEC 27001:2022 clause 6.1.3
+- id: F-05
+  title: The only internal audit was carried out by the person who runs the system
+  status: selected
+  strength: strong
+  strength_reason: The audit report names its author and the role of that person is documented.
+  criteria: [C-12]
+  condition: 1 of 1 internal audits in the last 12 months was carried out by the person who runs the management system (E-09).
+  cause: The company is small and has no one else trained to audit.
+  consequence: A person auditing their own work cannot be objective, so problems like the ones above may not be found.
+  action: Use a trained person from another team, or an outside auditor, for the next audit, and record who is independent of what.
+  owner: Managing director
+  due: 2027-02-26
+  likelihood: 2
+  likelihood_reason: Problems are likely to go unreported, as the other findings suggest.
+  impact: 2
+  impact_reason: It weakens the assurance the audit gives rather than causing a direct loss.
+  control_ref: ISO/IEC 27001:2022 clause 9.2
+- id: F-06
+  title: Supplier security may not be managed
+  status: candidate
+  strength: weak
+  strength_reason: The supplier register has not been seen. Based on the operations manager saying procurement holds it.
+- id: F-07
+  title: Backups may not restore
+  status: dropped
+  strength: strong
+  strength_reason: A restore test passed 7 weeks ago and the record is signed, so there is no gap.
