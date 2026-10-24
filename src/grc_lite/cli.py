@@ -7,6 +7,7 @@ from typing import Annotated
 import typer
 import yaml
 
+from grc_lite import guard
 from grc_lite.collectors import graph, sources
 from grc_lite.collectors.compare import check_leavers, check_mfa
 from grc_lite.collectors.errors import CollectError
@@ -350,3 +351,49 @@ def check_ids(
         err=True,
     )
     raise typer.Exit(1)
+
+
+@app.command("guard-names")
+def guard_names(
+    paths: Annotated[list[Path] | None, typer.Argument(help="Files or folders to scan")] = None,
+    staged: Annotated[bool, typer.Option(help="Scan what is staged for commit")] = False,
+    denylist: Annotated[
+        Path | None, typer.Option(help="Deny-list file (default: ~/.config/grc-lite/denylist.txt)")
+    ] = None,
+    install_hook: Annotated[
+        bool, typer.Option(help="Install a pre-commit hook in this repository")
+    ] = False,
+):
+    """Reject real client names from a deny-list kept outside the repository."""
+    here = Path.cwd()
+    try:
+        if install_hook:
+            hook = guard.install_hook(here)
+            typer.echo(
+                f"Installed {hook}. It can be skipped with --no-verify, so it is a safety net, not a gate."
+            )
+            return
+        if not staged and not paths:
+            typer.echo("error: give paths to scan, or --staged", err=True)
+            raise typer.Exit(2)
+        terms = guard.load_list(denylist or guard.default_list(), here)
+        hits, skipped = (
+            guard.scan_staged(here, terms) if staged else guard.scan_paths(paths or [], terms)
+        )
+    except guard.GuardError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2)
+    if skipped:
+        typer.echo(f"note: {skipped} binary or very large file(s) were not scanned.", err=True)
+    for hit in hits:
+        where = f"{hit.path}:{hit.line}" if hit.line else f"{hit.path} (file name)"
+        typer.echo(
+            f"{where}: matches deny-list entry {hit.entry}", err=True
+        )  # the name itself is never printed
+    if hits:
+        typer.echo(
+            f"{len(hits)} match(es). Replace real names with fictional ones before committing.",
+            err=True,
+        )
+        raise typer.Exit(1)
+    typer.echo(f"No deny-listed names found ({len(terms)} entries).")
