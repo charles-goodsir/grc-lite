@@ -12,6 +12,7 @@ from grc_lite.collectors.compare import check_leavers, check_mfa
 from grc_lite.collectors.errors import CollectError
 from grc_lite.collectors.record import record
 from grc_lite.collectors.verify import verify as verify_collected
+from grc_lite.idcheck import GitError, find_reuse
 from grc_lite.importer import import_notes
 from grc_lite.loader import AssessmentError, load
 from grc_lite.report import build_report
@@ -322,3 +323,30 @@ def collect_verify(
         typer.echo(f"{len(bad)} problem(s).", err=True)
         raise typer.Exit(1)
     typer.echo("All present detail files match their recorded hashes.")
+
+
+@app.command("check-ids")
+def check_ids(
+    folder: Annotated[Path, typer.Argument(help="Assessment folder inside a Git repository")],
+):
+    """Fail if a record ID was deleted and later used again, according to the Git history."""
+    try:
+        reused, warnings, commits = find_reuse(folder)
+    except GitError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(2)
+    for warning in warnings:
+        typer.echo(f"warning: {warning}", err=True)
+    if not reused:
+        typer.echo(f"No reused IDs ({commits} commit(s) read).")
+        return
+    for r in reused:
+        typer.echo(
+            f"{r.id} ({r.kind}): first seen {r.first_seen}, deleted in {r.deleted_in}, back in {r.returned_in}",
+            err=True,
+        )
+    typer.echo(
+        f"{len(reused)} reused ID(s). If one is a deliberate revert, say so in the pull request.",
+        err=True,
+    )
+    raise typer.Exit(1)
