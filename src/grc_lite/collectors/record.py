@@ -1,7 +1,9 @@
 """Write a collector result into an assessment folder without putting account names in Git."""
 
+import hashlib
 import json
 import os
+import secrets
 from datetime import date
 from pathlib import Path
 
@@ -29,27 +31,39 @@ def append_evidence(folder: Path, entry: dict) -> None:
     path.write_text("\n".join(lines + [block.rstrip()]) + "\n")
 
 
-def write_detail(folder: Path, kind: str, as_of: date, result: Result, rule: dict) -> Path:
-    """Save account names to collected/, which ignores itself and is readable only by the owner."""
+def write_detail(
+    folder: Path, kind: str, as_of: date, result: Result, rule: dict
+) -> tuple[Path, str]:
+    """Save account names to collected/, which ignores itself and is readable only by the owner.
+
+    The file carries a random salt, so its hash cannot be used to confirm a guessed list of names,
+    and it never overwrites an earlier file from the same day. Returns the path and its SHA-256."""
     directory = folder / "collected"
     directory.mkdir(exist_ok=True)
     ignore = directory / ".gitignore"
     if not ignore.exists():
         ignore.write_text("*\n")
-    path = directory / f"{kind}-{as_of.isoformat()}.json"
     detail = {"kind": kind, "as_of": as_of.isoformat(), "rule": rule, "checked": result.checked,
-              "offenders": result.offenders}  # fmt: skip
-    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
-        json.dump(detail, f, indent=2)
-    return path
+              "offenders": result.offenders, "salt": secrets.token_hex(16)}  # fmt: skip
+    body = json.dumps(detail, indent=2).encode()
+    for n in range(1, 1000):
+        suffix = "" if n == 1 else f"-{n}"
+        path = directory / f"{kind}-{as_of.isoformat()}{suffix}.json"
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        except FileExistsError:
+            continue
+        with os.fdopen(fd, "wb") as f:
+            f.write(body)
+        return path, hashlib.sha256(body).hexdigest()
+    raise OSError("too many detail files for one day")
 
 
 def record(
     folder: Path, kind: str, result: Result, as_of: date, source: str, rule: dict
 ) -> tuple[str, Path]:
     """Add an evidence entry (counts only) and a detail file (names). Return the ID and file."""
-    detail = write_detail(folder, kind, as_of, result, rule)
+    detail, digest = write_detail(folder, kind, as_of, result, rule)
     evidence_id = next_evidence_id(folder)
     append_evidence(
         folder,
@@ -61,7 +75,8 @@ def record(
             "shows": result.summary,
             "reliability": (
                 f"Collected read-only by grc-lite ({kind}) on {as_of.isoformat()}; point-in-time. "
-                f"Account names are in collected/{detail.name}, which is not tracked by Git."
+                f"Detail file collected/{detail.name} (SHA-256 {digest}) holds the account names "
+                "and is not tracked by Git."
             ),
         },
     )
