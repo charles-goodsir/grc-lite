@@ -101,7 +101,9 @@ src/grc_lite/
   grading.py         reads a grading file and builds the mistake log
   coverage.py        finds the thin spots in an assessment
   coach.py           the finding coach and the pre-submit checks
-  cli.py             Typer commands: init, validate, report, import-notes, collect, serve
+  idcheck.py         grc check-ids: finds IDs that came back after deletion, from Git history
+  guard.py           grc guard-names: scans for names on a private deny-list
+  cli.py             Typer commands: init, validate, report, import-notes, collect, serve, check-ids, guard-names
   web/               the local study app
     app.py           the server and its guards (host, token, JSON-only, lock, security headers)
     files.py         which files may be shown, and safe path handling
@@ -159,7 +161,7 @@ Each CI control was proved by a throwaway PR that should fail only its own check
 No cloud resources: nothing is deployed, nothing costs money, and no budget alert is needed. The collectors read an existing tenant using your own `az` session and store no credentials. The study app runs only on your machine.
 
 ## Status
-Complete: seven phases built and merged through pull requests into a protected `main`.
+Complete: nine phases built and merged through pull requests into a protected `main`, except the parked live steps of phase 9.
 1. Data model, validation, `grc validate`, `grc init`
 2. `grc report`
 3. CI on every PR, with each control proved by a failing case
@@ -167,6 +169,8 @@ Complete: seven phases built and merged through pull requests into a protected `
 5. Entra evidence collectors
 6. The study app: files and notes, records, export, import, submit and lock, search, coverage
 7. Grading import, mistake log, and progress across levels
+8. Pre-submit checklist, finding coach, interface polish
+9. Deepen, do not expand: live test runbook, Essential Eight and ISO 27001 examples, ID-reuse and client-name guards, salted hashes of collected detail files. Running the collectors against a live tenant is parked (see Known shortcuts).
 
 ## Development
 ```bash
