@@ -1,0 +1,11 @@
+- id: R-01
+  asked: 2026-10-14
+  what: The last five privileged access requests, with who approved each and when.
+  asked_who: IT manager
+  notes: Chased on 2026-10-21. The IT manager says approvals are by email and he has to search for them.
+- id: R-02
+  asked: 2026-10-13
+  what: Release and install dates for the three most recent critical web portal patches.
+  asked_who: IT manager
+  received: 2026-10-13
+  evidence: E-02

@@ -1,0 +1,21 @@
+- id: K-01
+  title: Ransomware leaves the firm unable to recover client files
+  description: Application control is missing on workstations and backups have never been test restored.
+  owner: IT manager
+  likelihood: 2
+  likelihood_reason: Ransomware is a common attack and two defences against it are weak.
+  impact: 3
+  impact_reason: The firm could not serve clients for days.
+  treatment: mitigate
+  findings: [F-01, F-04]
+  criteria: [C-01, C-10]
+- id: K-02
+  title: Takeover of an accounting platform account
+  owner: Office manager
+  likelihood: 3
+  likelihood_reason: All 6 finance users sign in with a password only today.
+  impact: 3
+  impact_reason: The platform holds client bank details.
+  treatment: mitigate
+  findings: [F-03]
+  criteria: [C-05]
