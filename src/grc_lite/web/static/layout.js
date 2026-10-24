@@ -36,7 +36,8 @@ function splitter(handle, cssVar, key, width) {
   handle.addEventListener("keydown", (e) => {
     if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
     e.preventDefault();
-    const current = parseFloat(getComputedStyle(root).getPropertyValue(cssVar)) || (key === "side" ? 260 : 420);
+    const panel = $(key === "side" ? "side" : "right");
+    const current = Math.round(panel.getBoundingClientRect().width); // what it is now, whatever the default was
     const grow = (e.key === "ArrowRight") === (key === "side"); // dragging right widens the left panel, narrows the right
     const next = clamp(current + (grow ? 24 : -24), ...limits);
     set(next);
