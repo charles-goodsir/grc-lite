@@ -1,6 +1,6 @@
 // The Export tab: downloads, importing a notes-tool file, and submitting a level.
 import { h, api, download } from "./ui.js";
-import { loadRecords, store } from "./records.js";
+import { loadCoach, loadRecords, store } from "./records.js";
 
 function note(text, bad = false) {
   return h("div", { class: "note" + (bad ? " bad" : "") }, text);
@@ -67,6 +67,8 @@ async function submitting(refresh) {
     return out;
   }
   const problems = store.problems.length;
+  const coach = await loadCoach();
+  const toLook = coach.checks.filter((x) => x.status !== "ok").length;
   const agree = h("input", { type: "checkbox", id: "agree" });
   const button = h("button", { class: "primary", disabled: "" }, "Submit and lock");
   agree.addEventListener("change", () => { button.disabled = !agree.checked; });
@@ -84,6 +86,7 @@ async function submitting(refresh) {
   out.append(
     h("p", {}, "Writes submission.md, records a SHA-256 of it, and locks your work so you cannot change answers after seeing how they are graded. Then send the file to Claude for review."),
     problems ? note(`${problems} problem(s) are still open. You can submit anyway, and the reviewer will see them.`, true) : h("span"),
+    toLook ? note(`The pre-submit check has ${toLook} thing(s) to look at. Open the Check tab first.`, true) : note("The pre-submit check is all clear."),
     h("label", {}, agree, " I understand this locks my work"),
     h("div", { class: "btns pad0" }, button),
     message,

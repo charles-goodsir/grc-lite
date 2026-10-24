@@ -27,6 +27,7 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 - **Problems:** everything `grc validate` would flag, each a link to its record. Drafts are allowed and show up here until complete.
 - **Search** across the files you can see, your notes and your records.
 - **Coverage:** where the assessment is thin: rules with no evidence or not tested, gaps no live finding covers, selected findings on weaker evidence, undecided candidates, evidence nothing uses, and requests still waiting, with a rules-by-evidence grid.
+- **Check:** a pre-submit checklist and a finding coach. It checks that every rule has a result, every candidate is decided, every gap has a finding, selected findings pass the coach, the slots are used, can't-test rules have requests, and evidence has a reliability note. The coach flags a missing Cause line, a condition with no number or no evidence ID, evidence that is not in your log, a likelihood that contradicts its own reason, a finding linked to a rule marked meets, and selected findings on weaker evidence. Reminders from the mistakes you tagged in earlier gradings come first. These catch incomplete or inconsistent work, not wrong conclusions.
 - **Cite this view** (on a CSV) records the filter and the row count as an evidence entry, so "5 of 31 rows" comes from a saved count. **Add selected text as evidence** quotes what you highlighted, with its source.
 - **Report:** the Markdown report, built live from what you logged.
 
@@ -89,6 +90,7 @@ src/grc_lite/
   importer.py        converts a notes-tool export into assessment YAML
   grading.py         reads a grading file and builds the mistake log
   coverage.py        finds the thin spots in an assessment
+  coach.py           the finding coach and the pre-submit checks
   cli.py             Typer commands: init, validate, report, import-notes, collect, serve
   web/               the local study app
     app.py           the server and its guards (host, token, JSON-only, lock, security headers)
@@ -104,7 +106,7 @@ src/grc_lite/
     sources.py       reads Graph JSON, users CSV and the HR leavers CSV
     graph.py         read-only Microsoft Graph client on the standard library
     record.py        appends the evidence entry and writes the private detail file
-tests/               192 tests, including a golden-file test of the example report
+tests/               217 tests, including a golden-file test of the example report
 data/example/        a fictional worked example
 docs/                the grading file format
 ```

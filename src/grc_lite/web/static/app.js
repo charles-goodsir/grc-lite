@@ -2,6 +2,7 @@ import { $, h, api } from "./ui.js";
 import { renderMarkdown } from "./md.js";
 import { renderCsv } from "./csv.js";
 import { searchTab } from "./search.js";
+import { checkTab } from "./check.js";
 import { coverageTab } from "./coverage.js";
 import { exportTab } from "./export.js";
 import { gradingTab } from "./grading.js";
@@ -136,6 +137,7 @@ const TABS = [
   ...KINDS.map((kind) => ({ id: kind, label: LABELS[kind], render: () => recordsTab(kind) })),
   { id: "search", label: "Search", render: async () => searchTab(nav) },
   { id: "coverage", label: "Coverage", render: () => coverageTab(nav) },
+  { id: "check", label: "Check", render: () => checkTab(nav) },
   { id: "report", label: "Report", render: reportTab },
   { id: "export", label: "Export", render: () => exportTab(() => showTab("export")) },
   { id: "grading", label: "Grading", render: () => gradingTab(nav) },
@@ -187,7 +189,14 @@ function updateLock() {
   notesPanel.setLocked(store.locked);
 }
 
+function checkCount() {
+  const n = store.coach.checks.filter((x) => x.status !== "ok").length;
+  const button = document.querySelector('#tabs button[data-id="check"]');
+  if (button) button.textContent = n ? `Check (${n})` : "Check";
+}
+
 on({
+  coach: checkCount,
   problems: problemCount,
   locked: updateLock,
   goto: (kind, id) => showTab(kind, id),

@@ -4,9 +4,9 @@
 import { h, api, debounce } from "./ui.js";
 import { renderMarkdown } from "./md.js";
 
-export const store = { grading: { graded: false, grading: null, tags: [], revealed: false }, locked: false, meta: { name: "", scale: 3, slots: 8, counters: {} }, criteria: [], evidence: [], findings: [], requests: [], risks: [], problems: [] };
+export const store = { coach: { checks: [], reminders: [], findings: {} }, grading: { graded: false, grading: null, tags: [], revealed: false }, locked: false, meta: { name: "", scale: 3, slots: 8, counters: {} }, criteria: [], evidence: [], findings: [], requests: [], risks: [], problems: [] };
 
-let listeners = { problems: () => {}, goto: () => {}, rerender: () => {}, locked: () => {} };
+let listeners = { problems: () => {}, goto: () => {}, rerender: () => {}, locked: () => {}, coach: () => {} };
 export const on = (handlers) => { listeners = { ...listeners, ...handlers }; };
 
 export async function loadRecords() {
@@ -14,6 +14,12 @@ export async function loadRecords() {
   store.grading = await api("/api/grading");
   listeners.problems();
   listeners.locked();
+}
+
+export async function loadCoach() {
+  store.coach = await api("/api/coach");
+  listeners.coach();
+  return store.coach;
 }
 
 // ---- save status shared by the tabs ----
@@ -266,7 +272,14 @@ function card(kind, record) {
   del.hidden = store.locked;
   const graded = graderNotes(kind, record.id).map((n) =>
     h("div", { class: "grader" }, h("strong", {}, `Grader${n.key_rating ? " (key: " + n.key_rating + ")" : ""}: `), n.note));
-  const root = h("div", { class: "card", id: `rec-${record.id}` }, h("h4", {}, badge, del), missing, ...graded);
+  const coachBox = h("div", { class: "coachbox" });
+  const root = h("div", { class: "card", id: `rec-${record.id}` }, h("h4", {}, badge, del), missing, coachBox, ...graded);
+
+  function showCoach() {
+    const issues = kind === "findings" ? store.coach.findings[record.id] || [] : [];
+    coachBox.replaceChildren(...issues.map((i) => h("div", { class: "issue " + i.level }, h("span", { class: "chip" }, i.level === "fix" ? "coach: fix" : "coach: tip"), " " + i.message)));
+  }
+  showCoach();
 
   function refresh() {
     root.className = "card " + form.tone(state);
@@ -286,6 +299,7 @@ function card(kind, record) {
       listeners.problems();
       refresh();
       setStatus("Saved");
+      if (kind === "findings" || kind === "evidence" || kind === "criteria") loadCoach().then(showCoach).catch(() => {});
     } catch (e) {
       setStatus("NOT SAVED: " + e.message, true);
     }

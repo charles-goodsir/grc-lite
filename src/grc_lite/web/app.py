@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
+from grc_lite.coach import presubmit
 from grc_lite.coverage import coverage
 from grc_lite.grading import TAGS
 from grc_lite.importer import file_notes
@@ -223,6 +224,18 @@ def create_app(
     def progress_across_levels():
         root = levels if levels is not None else level.resolve().parent
         return progress.progress(root, level, assessment)
+
+    @app.get("/api/coach")
+    def coach_checks():
+        def run():
+            data = {kind: records.read_records(assessment, kind) for kind in records.KINDS}
+            meta = records.read_meta(assessment)
+            root = levels if levels is not None else level.resolve().parent
+            history = progress.progress(root, level, assessment)["totals"]["mistakes"]
+            problems = len(records.problems(assessment))
+            return presubmit(data, meta.scale, meta.slots, problems, history, date.today())
+
+        return guarded(run)
 
     @app.post("/api/submit")
     def submit():
