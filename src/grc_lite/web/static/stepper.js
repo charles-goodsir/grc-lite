@@ -18,7 +18,7 @@ export function drawStepper(state, nav) {
   ];
   const now = steps.findIndex((s) => !s.done);
   $("stepper").replaceChildren(...steps.map((s, i) => h("button", {
-    class: (s.done ? "done " : "") + (i === now ? "now" : ""), title: s.tip, onclick: s.go,
-    "aria-current": i === now ? "step" : "false",
-  }, h("span", { class: "num" }, s.done ? "✓" : String(i + 1)), s.label)));
+    class: (s.done ? "done " : "") + (i === now ? "now" : ""), "data-tip": `${s.label}: ${s.tip}`, onclick: s.go,
+    "aria-label": `${i + 1}. ${s.label}${s.done ? " (done)" : i === now ? " (current step)" : ""}`, "aria-current": i === now ? "step" : "false",
+  }, h("span", { class: "num" }, s.done ? "✓" : String(i + 1)), h("span", { class: "lab" }, s.label))));
 }

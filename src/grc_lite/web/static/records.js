@@ -319,6 +319,7 @@ function card(kind, record) {
       store.problems = result.problems;
       store[kind] = store[kind].filter((r) => r.id !== record.id);
       listeners.problems();
+      loadCoach().catch(() => {});
       listeners.rerender();
     } catch (e) {
       setStatus("NOT DELETED: " + e.message, true);
@@ -348,6 +349,7 @@ export async function recordsTab(kind) {
       store.problems = made.problems;
       store[kind].push(made.record);
       listeners.problems();
+      loadCoach().catch(() => {});
       listeners.rerender(made.record.id);
     } catch (e) {
       setStatus("NOT ADDED: " + e.message, true);

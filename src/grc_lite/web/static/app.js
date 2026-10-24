@@ -167,8 +167,18 @@ const nav = {
   openRecord: (kind, id) => showTab(kind, id),
 };
 
+const groupOf = (id) => GROUPS.find(([, ids]) => ids.includes(id))[0];
+const lastInGroup = {};
+
+function showGroup(name) {
+  document.querySelectorAll("#groups button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.group === name)));
+  document.querySelectorAll("#tabs button").forEach((b) => { b.hidden = groupOf(b.dataset.id) !== name; });
+}
+
 async function showTab(id, focusId) {
   activeTab = id;
+  lastInGroup[groupOf(id)] = id;
+  showGroup(groupOf(id));
   const tab = TABS.find((t) => t.id === id);
   document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.id === id)));
   try {
@@ -193,10 +203,20 @@ function refreshStepper() {
   });
 }
 
+function reviewBadge() {
+  const badge = document.querySelector('#groups [data-badge="Review"]');
+  if (!badge) return;
+  const checks = store.criteria.length ? store.coach.checks.filter((x) => x.status !== "ok").length : 0;
+  const n = store.problems.length + checks;
+  badge.textContent = String(n);
+  badge.hidden = !n;
+}
+
 function problemCount() {
   const n = store.problems.length;
   const button = document.querySelector('#tabs button[data-id="problems"]');
   if (button) button.textContent = n ? `Problems (${n})` : "Problems";
+  reviewBadge();
   refreshStepper();
 }
 
@@ -209,9 +229,11 @@ function updateLock() {
 }
 
 function checkCount() {
-  const n = store.coach.checks.filter((x) => x.status !== "ok").length;
+  // nothing to check until the first rule exists, so an empty level does not show a count
+  const n = store.criteria.length ? store.coach.checks.filter((x) => x.status !== "ok").length : 0;
   const button = document.querySelector('#tabs button[data-id="check"]');
   if (button) button.textContent = n ? `Check (${n})` : "Check";
+  reviewBadge();
   refreshStepper();
 }
 
@@ -227,9 +249,12 @@ on({
 
 async function start() {
   for (const [group, ids] of GROUPS) {
-    $("tabs").append(h("div", { class: "tabgroup", role: "group", "aria-label": group },
-      h("span", { class: "grouplabel" }, group),
-      ids.map((id) => { const tab = TABS.find((t) => t.id === id); return h("button", { role: "tab", "data-id": tab.id, onclick: () => showTab(tab.id) }, tab.label); })));
+    $("groups").append(h("button", { "data-group": group, "aria-pressed": "false", onclick: () => showTab(lastInGroup[group] || ids[0]) },
+      group, h("span", { class: "badge", "data-badge": group, hidden: "" })));
+    for (const id of ids) {
+      const tab = TABS.find((t) => t.id === id);
+      $("tabs").append(h("button", { role: "tab", "data-id": tab.id, onclick: () => showTab(tab.id) }, tab.label));
+    }
   }
   initLayout();
   showTab("notes");

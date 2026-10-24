@@ -23,8 +23,8 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 
 **Layout**
 - A top bar with **Files** (hide the file list), **Reading mode** (hide both side panels, press Esc to leave) and a **Theme** switch (system, light, dark). The two dividers can be dragged, or focused and moved with the left and right arrow keys, and your widths and theme are remembered in the browser.
-- The tabs are grouped as Work, Review, Find and Finish.
-- A **level stepper** above the tabs follows the playbook: read the scope, pull out the rules, test them, log what's missing, write findings, submit and review. Steps tick themselves from what you have logged, the current one is highlighted, and each step takes you to the right place.
+- The tabs are in four groups, Work, Review, Find and Finish. Pick a group and its tabs appear underneath, and the Review group shows how many things need a look (problems plus pre-submit checks).
+- A **level stepper** above the tabs follows the playbook: read the scope, pull out the rules, test them, log what's missing, write findings, submit and review. It shows numbered dots with the current step named, ticks steps from what you have logged, and hovering a step shows what it means. Each step takes you to the right place.
 
 **Working through a level**
 - **Notes** for the open file.
