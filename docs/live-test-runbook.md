@@ -1,6 +1,15 @@
 # Live test runbook: running the Entra collectors against a real tenant
 
-Status: a plan. Nothing in this file has been run. Until a run is recorded in the README, live mode is described there as **not yet run against a real tenant**.
+Status: **parked** (decided 24 October 2026). Nothing in this file has been run. Until a run is recorded in the README, live mode is described there as **not yet run against a real tenant**.
+
+## Why it is parked
+- **A new workforce tenant is not free.** The Entra portal's "Manage tenants" page says customers must own a paid licence to create one (seen on 24 October 2026). The "External" option is for customer sign-ins, not employees, so it would not tell us how the collectors behave on a normal tenant.
+- **The existing lab tenant is kept apart.** It belongs to another project (Secure Expense Claims), and I do not want fake users and test runs mixed into it.
+- **A free tenant would prove less.** Without a paid licence the MFA report may return nothing, so one of the two collectors could not be fully tested, and the audit log may be too short for step 5.
+- **The claim stays honest meanwhile.** The README says live mode is unproven, which is better than a rushed run on a thin tenant.
+
+## Resume when
+A separate tenant with a paid licence exists (a trial or developer sandbox, after checking current eligibility and terms), or a second personal account with its own free directory is acceptable for a partial run. Then follow the rest of this runbook. Steps 2 to 5 of the plan (live run, shape fixes, app-registration sign-in, leavers from the audit log) all depend on it.
 
 The collectors (`grc collect leavers`, `grc collect mfa`) are tested only against fixtures built from the Microsoft Graph documentation. This runbook is how to find out where real responses differ.
 
@@ -17,7 +26,8 @@ Pick one and write down which. Check the current Microsoft terms and eligibility
 
 | Option | Good for | Watch out for |
 |---|---|---|
-| A free Entra ID tenant you create under your own account | Users, roles, the user list | Some reports and sign-in data need a paid licence, so the MFA report may return nothing or an error. That is itself a finding. |
+| A new workforce tenant | Users, roles, the user list | Needs a paid licence to create (the portal says so). A free directory from a separate personal account may exist but could not return the MFA report. |
+| An "External" (customer) tenant | Nothing useful here | Not representative of an employee tenant. |
 | A Microsoft 365 developer sandbox, if you are eligible | Sample users, a paid licence tier, real audit and report data | Eligibility rules; the sandbox expires if unused. |
 | An existing lab tenant from another project | Already set up | Make sure nothing real is in it. |
 
