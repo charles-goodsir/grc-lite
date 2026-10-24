@@ -28,6 +28,10 @@ body { background: var(--bg); color: var(--ink); font: var(--fs-base)/1.55 var(-
 #level-name { font-size: var(--fs-lg); }
 #topbar button { padding: 3px 10px; }
 #app { display: grid; grid-template-columns: var(--side, clamp(200px, 20vw, 260px)) 6px minmax(0, 1fr) 6px var(--right, clamp(340px, 30vw, 560px)); min-height: 0; }
+/* Each panel keeps its own column even when a neighbour is hidden. Without this, a hidden (display:none)
+   panel drops out of the grid and the others slide into the wrong columns. */
+#side { grid-column: 1; } #split1 { grid-column: 2; } #view { grid-column: 3; } #split2 { grid-column: 4; } #right { grid-column: 5; }
+#side, #split1, #view, #split2, #right { grid-row: 1; }
 .resizer { cursor: col-resize; background: var(--line); opacity: .6; touch-action: none; }
 .resizer:hover, .resizer:focus-visible, .resizer.drag { opacity: 1; background: var(--accent); }
 body.no-side #side, body.no-side #split1, body.reading #side, body.reading #split1 { display: none; }

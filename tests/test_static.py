@@ -38,3 +38,22 @@ def test_the_page_shell_has_no_inline_script_style_or_handlers():
     assert not re.search(r"<script(?![^>]*\bsrc=)", page)
     assert not re.search(r"<style|\sstyle=|\son\w+=", page)
     assert page.count('type="module"') == 1
+
+
+PANELS = {"side": 1, "split1": 2, "view": 3, "split2": 4, "right": 5}
+
+
+def test_every_panel_keeps_its_own_grid_column():
+    """Hiding a panel with display:none drops it from the grid, so the others would slide into the
+    wrong columns (a 56px reading pane and a huge right panel). Each panel must name its column."""
+    css = (STATIC / "style.css").read_text()
+    for panel, column in PANELS.items():
+        assert re.search(rf"#{panel}\s*\{{[^}}]*grid-column:\s*{column}\b", css), (
+            f"#{panel} is not pinned to column {column}"
+        )
+
+
+def test_the_panels_appear_in_the_page_in_column_order():
+    page = (STATIC / "index.html").read_text()
+    positions = [page.index(f'id="{panel}"') for panel in PANELS]
+    assert positions == sorted(positions)
