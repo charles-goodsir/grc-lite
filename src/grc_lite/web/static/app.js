@@ -6,8 +6,10 @@ import { checkTab } from "./check.js";
 import { coverageTab } from "./coverage.js";
 import { exportTab } from "./export.js";
 import { gradingTab } from "./grading.js";
+import { initLayout } from "./layout.js";
 import { progressTab } from "./progress.js";
-import { KINDS, LABELS, on, problemsTab, recordsTab, reportTab, store } from "./records.js";
+import { drawStepper } from "./stepper.js";
+import { KINDS, LABELS, loadCoach, on, problemsTab, recordsTab, reportTab, store } from "./records.js";
 
 // Everything shown from a file is built with DOM text nodes, never innerHTML,
 // so a hostile line in a data-room file cannot run script in the page.
@@ -103,6 +105,7 @@ const notesPanel = (() => {
       status.textContent = "Saved";
       if (text.trim()) noted.add(target); else noted.delete(target);
       drawFiles();
+      refreshStepper();
     } catch (e) {
       status.className = "status bad";
       status.textContent = "NOT SAVED. Check the terminal where grc serve is running.";
@@ -144,6 +147,12 @@ const TABS = [
   { id: "progress", label: "Progress", render: progressTab },
   { id: "problems", label: "Problems", render: problemsTab },
 ];
+const GROUPS = [
+  ["Work", ["notes", "criteria", "evidence", "findings", "requests", "risks"]],
+  ["Review", ["check", "problems", "coverage", "report"]],
+  ["Find", ["search"]],
+  ["Finish", ["export", "grading", "progress"]],
+];
 let activeTab = "notes";
 const nav = {
   refreshFiles: async () => {
@@ -161,7 +170,7 @@ const nav = {
 async function showTab(id, focusId) {
   activeTab = id;
   const tab = TABS.find((t) => t.id === id);
-  [...$("tabs").children].forEach((b) => b.setAttribute("aria-selected", String(b.dataset.id === id)));
+  document.querySelectorAll("#tabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.id === id)));
   try {
     $("panel").replaceChildren(...(await tab.render()));
   } catch (e) {
@@ -176,10 +185,19 @@ async function showTab(id, focusId) {
   }
 }
 
+const scopePath = () => files.find((p) => /(^|\/)01-scope\.md$/i.test(p));
+function refreshStepper() {
+  drawStepper({ scopeNoted: noted.has(scopePath()) }, {
+    openScope: () => { const path = scopePath(); if (path) openFile(path); },
+    openRecord: (kind) => showTab(kind),
+  });
+}
+
 function problemCount() {
   const n = store.problems.length;
   const button = document.querySelector('#tabs button[data-id="problems"]');
   if (button) button.textContent = n ? `Problems (${n})` : "Problems";
+  refreshStepper();
 }
 
 function updateLock() {
@@ -187,12 +205,14 @@ function updateLock() {
   bar.hidden = !store.locked;
   bar.textContent = store.locked ? "Submitted and locked. Editing is off; reading and export still work." : "";
   notesPanel.setLocked(store.locked);
+  refreshStepper();
 }
 
 function checkCount() {
   const n = store.coach.checks.filter((x) => x.status !== "ok").length;
   const button = document.querySelector('#tabs button[data-id="check"]');
   if (button) button.textContent = n ? `Check (${n})` : "Check";
+  refreshStepper();
 }
 
 on({
@@ -206,9 +226,12 @@ on({
 // ---- start ----
 
 async function start() {
-  for (const tab of TABS) {
-    $("tabs").append(h("button", { role: "tab", "data-id": tab.id, onclick: () => showTab(tab.id) }, tab.label));
+  for (const [group, ids] of GROUPS) {
+    $("tabs").append(h("div", { class: "tabgroup", role: "group", "aria-label": group },
+      h("span", { class: "grouplabel" }, group),
+      ids.map((id) => { const tab = TABS.find((t) => t.id === id); return h("button", { role: "tab", "data-id": tab.id, onclick: () => showTab(tab.id) }, tab.label); })));
   }
+  initLayout();
   showTab("notes");
   $("filter").addEventListener("input", drawFiles);
   addEventListener("keydown", (e) => {
@@ -220,6 +243,7 @@ async function start() {
   try {
     const [info, list, index, records] = await Promise.all([api("/api/info"), api("/api/files"), api("/api/notes-index"), api("/api/records")]);
     Object.assign(store, records);
+    await loadCoach().catch(() => {}); // so the stepper does not tick "Write findings" before the coach has looked
     problemCount();
     updateLock();
     $("level-name").textContent = info.level;

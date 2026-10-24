@@ -8,17 +8,26 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+  <header id="topbar">
+    <button id="toggle-side" aria-pressed="true" title="Show or hide the file list">Files</button>
+    <strong id="level-name">grc-lite</strong>
+    <span class="spacer"></span>
+    <button id="reading" aria-pressed="false" title="Hide both side panels and just read the file">Reading mode</button>
+    <button id="theme" title="Switch between system, light and dark">Theme: system</button>
+  </header>
   <div id="app">
     <aside id="side">
       <div class="side-head">
-        <strong id="level-name">grc-lite</strong>
         <input id="filter" type="search" placeholder="Filter files" aria-label="Filter files">
       </div>
       <div id="files" role="listbox" aria-label="Files"></div>
     </aside>
+    <div id="split1" class="resizer" role="separator" aria-orientation="vertical" aria-label="Resize the file list" tabindex="0"></div>
     <main id="view" aria-live="polite"><p class="empty">Pick a file on the left.</p></main>
+    <div id="split2" class="resizer" role="separator" aria-orientation="vertical" aria-label="Resize the right panel" tabindex="0"></div>
     <aside id="right">
       <div id="lockbar" role="status" hidden></div>
+      <div id="stepper" aria-label="Where you are in this level"></div>
       <div id="tabs" role="tablist"></div>
       <div id="panel"></div>
     </aside>
