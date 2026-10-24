@@ -1,0 +1,73 @@
+# Each criterion names the standard and a control number or clause. The rule is a plain-English test I
+# wrote from the control's title, not the standard's wording. A real ISO 27001 audit tests the
+# organisation's own Statement of Applicability against the standard itself.
+- id: C-01
+  source: ISO/IEC 27001:2022 Annex A, A.6.5 Responsibilities after termination or change of employment
+  rule: When someone leaves or changes role, their access is removed or changed promptly, and they are reminded of duties that continue, such as confidentiality.
+  evidence_needed: The HR leavers list compared with the account list, and the leaver checklist.
+  evidence: [E-01]
+  result: gap
+- id: C-02
+  source: ISO/IEC 27001:2022 Annex A, A.5.15 Access control
+  rule: There is an access control rule based on business need that says who may use what, and it is applied in the main systems.
+  evidence_needed: The access control policy, and a sample of permissions in two systems compared with it.
+  evidence: [E-02]
+  result: meets
+- id: C-03
+  source: ISO/IEC 27001:2022 Annex A, A.5.18 Access rights
+  rule: Access rights are given, reviewed and removed through a defined process, and reviewed at planned intervals.
+  evidence_needed: The access review schedule and the last two review records.
+  evidence: [E-03]
+  result: gap
+- id: C-04
+  source: ISO/IEC 27001:2022 Annex A, A.8.2 Privileged access rights
+  rule: Privileged access is limited to people who need it, given through a formal approval, and reviewed.
+  evidence_needed: The list of administrators with the approval for each, and the last review.
+  evidence: [E-04]
+  result: meets
+- id: C-05
+  source: ISO/IEC 27001:2022 Annex A, A.8.5 Secure authentication
+  rule: Sign-in methods suit the sensitivity of the system, for example multi-factor authentication for administrators and remote access.
+  evidence_needed: The authentication policy, and the MFA registration report for administrators and remote users.
+  evidence: [E-05]
+  result: gap
+- id: C-06
+  source: ISO/IEC 27001:2022 Annex A, A.8.13 Information backup
+  rule: Backups of information and systems are taken and tested to an agreed policy.
+  evidence_needed: The backup policy, the schedule, and the record of the latest restore test.
+  evidence: [E-06]
+  result: meets
+- id: C-07
+  source: ISO/IEC 27001:2022 Annex A, A.8.15 Logging
+  rule: Logs of user activity and security events are produced, kept, protected from change and reviewed.
+  evidence_needed: The logging standard, the retention settings, and records that someone reviews the logs.
+  evidence: [E-07]
+  result: gap
+- id: C-08
+  source: ISO/IEC 27001:2022 Annex A, A.8.8 Management of technical vulnerabilities
+  rule: Technical vulnerabilities are found, assessed for exposure and fixed within a set time.
+  evidence_needed: Scanner reports and the dates when the last critical findings were fixed.
+  evidence: [E-08]
+  result: meets
+- id: C-09
+  source: ISO/IEC 27001:2022 Annex A, A.5.19 Information security in supplier relationships
+  rule: Information security requirements for suppliers are defined and agreed, and supplier risk is managed.
+  evidence_needed: The supplier register with a risk rating for each supplier, and the contract terms for the two most important.
+  result: can't test
+- id: C-10
+  source: ISO/IEC 27001:2022 Annex A, A.5.24 Information security incident management planning
+  rule: Incident management is planned, with defined roles, a process and communication routes that staff know.
+  evidence_needed: The incident procedure, and a staff awareness record or a test exercise.
+  result: not tested
+- id: C-11
+  source: ISO/IEC 27001:2022 clause 6.1.3 Information security risk treatment (Statement of Applicability)
+  rule: A Statement of Applicability lists the controls the organisation needs, whether each is in place, and why any Annex A control is left out.
+  evidence_needed: The current Statement of Applicability and the risk treatment plan it follows from.
+  evidence: [E-09]
+  result: gap
+- id: C-12
+  source: ISO/IEC 27001:2022 clause 9.2 Internal audit
+  rule: Internal audits of the management system happen at planned intervals, run by people who are objective about what they audit.
+  evidence_needed: The audit programme and the last internal audit report with who carried it out.
+  evidence: [E-09]
+  result: gap

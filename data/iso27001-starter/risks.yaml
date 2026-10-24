@@ -1,0 +1,21 @@
+- id: K-01
+  title: A former employee uses an account that was never removed
+  description: Leavers keep accounts, and access reviews have not caught them.
+  owner: IT lead
+  likelihood: 3
+  likelihood_reason: Four leaver accounts are enabled today.
+  impact: 3
+  impact_reason: The systems hold client data.
+  treatment: mitigate
+  findings: [F-01, F-02]
+  criteria: [C-01, C-03]
+- id: K-02
+  title: An attack goes unseen because security logs are short and unread
+  owner: IT lead
+  likelihood: 2
+  likelihood_reason: Logs are kept for 14 days and nobody reads them routinely.
+  impact: 3
+  impact_reason: The company could not investigate or tell clients what happened.
+  treatment: mitigate
+  findings: [F-03]
+  criteria: [C-07]

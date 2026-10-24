@@ -1,0 +1,9 @@
+name: Larkspur Analytics Ltd (fictional) - ISO 27001 starter assessment
+scale: 3
+slots: 5
+counters:
+  C: 12
+  E: 9
+  F: 7
+  R: 2
+  K: 2
