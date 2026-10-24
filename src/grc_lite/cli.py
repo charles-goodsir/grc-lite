@@ -11,6 +11,7 @@ from grc_lite.collectors import graph, sources
 from grc_lite.collectors.compare import check_leavers, check_mfa
 from grc_lite.collectors.errors import CollectError
 from grc_lite.collectors.record import record
+from grc_lite.collectors.verify import verify as verify_collected
 from grc_lite.importer import import_notes
 from grc_lite.loader import AssessmentError, load
 from grc_lite.report import build_report
@@ -291,3 +292,33 @@ def serve(
     uvicorn.run(
         create_app(level, work, levels=levels), host="127.0.0.1", port=port, log_level="warning"
     )
+
+
+@collect_app.command("verify")
+def collect_verify(
+    folder: Annotated[Path, typer.Argument(help="Assessment folder")],
+    strict: Annotated[
+        bool, typer.Option(help="Also fail when a detail file is not on this machine")
+    ] = False,
+):
+    """Check each collected detail file against the hash recorded in its evidence entry."""
+    results = verify_collected(folder)
+    if not results:
+        typer.echo("No evidence entries with a detail-file hash.")
+        return
+    for r in results:
+        typer.echo(f"{r['id']}  {r['status']:<10} collected/{r['file']}")
+    bad = [
+        r
+        for r in results
+        if r["status"] in ("changed", "unreadable") or (strict and r["status"] == "missing")
+    ]
+    missing = [r for r in results if r["status"] == "missing"]
+    if missing and not strict:
+        typer.echo(
+            f"{len(missing)} detail file(s) are not on this machine, so they could not be checked."
+        )
+    if bad:
+        typer.echo(f"{len(bad)} problem(s).", err=True)
+        raise typer.Exit(1)
+    typer.echo("All present detail files match their recorded hashes.")

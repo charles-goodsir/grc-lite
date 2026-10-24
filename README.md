@@ -84,6 +84,7 @@ Rating = likelihood x impact. Scale 3: 7-9 High, 4-6 Medium, 1-3 Low. Scale 5: 2
 What it protects:
 - The evidence entry holds counts only. Account names go to `collected/<kind>-<date>.json` (mode 600) next to the assessment, in a folder that contains its own `.gitignore` with `*`, so they are not committed by accident.
 - Live mode is GET-only, sends the token only to `graph.microsoft.com`, refuses a paging link or redirect that points elsewhere, and keeps the token and request headers out of every error message.
+- Each detail file carries a random salt and a hash of it is recorded in the evidence entry, and a same-day rerun gets its own file instead of overwriting the first. `grc collect verify <assessment>` re-hashes the files and reports any that changed (exit 1) or are not on this machine. The hash shows a file is unchanged since it was collected. It does not show who collected it or when, and it needs the detail file, which is deliberately never committed.
 - It never edits `criteria.yaml`. It prints the result it suggests and you decide.
 
 ## How it is built
