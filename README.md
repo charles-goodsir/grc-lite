@@ -69,6 +69,8 @@ Rating = likelihood x impact. Scale 3: 7-9 High, 4-6 Medium, 1-3 Low. Scale 5: 2
 - **`grc import-notes`** only translates a notes-tool `notes.md`. Anything it cannot map (a finding whose criteria it cannot match to an ID, a missing section) is left empty and reported as a warning, then `grc validate` shows what still needs fixing.
 - **`grc collect`** reads Entra ID data, compares it to a rule, and adds an evidence entry (see below).
 - **`grc serve`** is the study app above.
+- **`grc check-ids <assessment>`** reads the Git history of the five records files (and the working tree) and fails if an ID that was deleted has come back. It reports the ID with the commits where it first appeared, vanished and returned. A deliberate revert will also be flagged, so say so in the pull request. It needs real history: a shallow clone is warned about, and CI's default shallow checkout would not be enough.
+- **`grc guard-names`** rejects real client names from a deny-list that lives outside the repository (default `~/.config/grc-lite/denylist.txt`, or `GRC_DENYLIST`, one name per line). `grc guard-names PATH...` scans files and folders, `--staged` scans what is about to be committed, and `--install-hook` writes a pre-commit hook. It fails closed: a missing, empty or in-repo list is an error, never a clean result. A hit names the file and line and the list entry number, never the name. Matching is plain, case-insensitive text, so it will not catch misspellings, initials or a name written another way unless you list that too.
 
 ## Evidence collectors
 ```bash
@@ -112,7 +114,7 @@ src/grc_lite/
     sources.py       reads Graph JSON, users CSV and the HR leavers CSV
     graph.py         read-only Microsoft Graph client on the standard library
     record.py        appends the evidence entry and writes the private detail file
-tests/               320+ tests, including a golden-file test of the example report and a check that the page code never parses HTML from a string
+tests/               360+ tests, including a golden-file test of the example report and a check that the page code never parses HTML from a string
 data/example/        a fictional worked example
 docs/                the grading file format
 ```
@@ -142,10 +144,11 @@ Each CI control was proved by a throwaway PR that should fail only its own check
 - **Live Graph mode has not been run against a real tenant.** It is tested against fixtures with made-up `acme.example` addresses, so the response shapes follow the documentation and are unproved until someone runs it.
 - **The study app has only been tried on scratch copies of levels**, with your real notes and grading files as input. The interface is checked by hand in a browser, not by JavaScript tests, and only in a narrow window.
 - The leavers check sees only the current state, so it cannot tell whether an account that is disabled now was disabled late.
-- IDs are never reused by the app, which keeps a counter. Editing the YAML by hand, or using the CLI importer, can still reuse a number and nothing checks it.
+- IDs are never reused by the app, which keeps a counter, and `grc check-ids` catches reuse from hand edits or the CLI importer by reading Git history. It is a command you run, not a required CI check, and it only sees what was committed.
 - The app rewrites the YAML in a fixed layout, so template comments are dropped after the first save. Two browser tabs on one assessment is not supported: the last save wins.
 - The grading import understands one layout (see the format doc). Mistake tags for "for next time" points come from a few keywords and are suggestions. The Excel export is a plain workbook, with no formulas or dropdowns.
 - The importer drops any free text in the notes tool's "Ev # received" column beyond the evidence number. The request log and risk register are not in that export, so they are written by hand.
+- The name guard is a safety net: a pre-commit hook can be skipped with `--no-verify`, and CI cannot run it because the list must stay private.
 - Azure resource checks and a CSV import were not built.
 
 ## Teardown
