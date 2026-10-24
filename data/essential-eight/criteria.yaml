@@ -1,0 +1,66 @@
+# Each criterion cites the ASD Essential Eight maturity model by name and is a short paraphrase of
+# part of Maturity Level One, not a quotation. Read the model itself for the full wording.
+- id: C-01
+  source: ASD Essential Eight maturity model (last reviewed 27 Nov 2023), Maturity Level One, application control
+  rule: Application control limits what can run on workstations to an approved set, including from user profile and temporary folders.
+  evidence_needed: Application control policy export from a sample of workstations, and a test that an unapproved program in a user folder is blocked.
+  evidence: [E-01]
+  result: gap
+- id: C-02
+  source: ASD Essential Eight maturity model (last reviewed 27 Nov 2023), Maturity Level One, patch applications
+  rule: Critical vulnerabilities in internet-facing online services are patched within 48 hours, and others within two weeks.
+  evidence_needed: Scanner results for the online services, and release and install dates for the last few critical patches.
+  evidence: [E-02]
+  result: meets
+- id: C-03
+  source: ASD Essential Eight maturity model (last reviewed 27 Nov 2023), Maturity Level One, patch applications
+  rule: Office suites, browsers, PDF readers, email clients and security products are scanned weekly and patched within two weeks, and unsupported versions are removed.
+  evidence_needed: Weekly scan schedule and results, patch dates for a sample of workstations, and a list of software versions in use.
+  evidence: [E-02]
+  result: meets
+- id: C-04
+  source: ASD Essential Eight maturity model (last reviewed 27 Nov 2023), Maturity Level One, patch operating systems
+  rule: Operating systems on workstations are patched within one month of release, and unsupported operating systems are replaced.
+  evidence_needed: Patch compliance report by workstation with release and install dates, and the operating system versions in use.
+  evidence: [E-03]
+  result: gap
+- id: C-05
+  source: ASD Essential Eight maturity model (last reviewed 27 Nov 2023), Maturity Level One, multi-factor authentication
+  rule: Multi-factor authentication protects sign-in to online services that hold sensitive data, including third-party services.
+  evidence_needed: A list of online services that hold sensitive data, and the sign-in policy or MFA report for each.
+  evidence: [E-04]
+  result: gap
+- id: C-06
+  source: ASD Essential Eight maturity model (last reviewed 27 Nov 2023), Maturity Level One, restrict administrative privileges
+  rule: Privileged users have a separate privileged account used only for admin duties, and it cannot browse the web or read email.
+  evidence_needed: A list of privileged accounts, and the policy that blocks internet and email access for them.
+  evidence: [E-05]
+  result: meets
+- id: C-07
+  source: ASD Essential Eight maturity model (last reviewed 27 Nov 2023), Maturity Level One, restrict administrative privileges
+  rule: A request for privileged access is validated when it is first made.
+  evidence_needed: The last few privileged access requests with who approved each and when.
+  result: can't test
+- id: C-08
+  source: ASD Essential Eight maturity model (last reviewed 27 Nov 2023), Maturity Level One, restrict Microsoft Office macros
+  rule: Macros are disabled for users with no business need, blocked in files from the internet, and users cannot change the settings.
+  evidence_needed: The macro policy export, and a test opening a macro file downloaded from the internet.
+  evidence: [E-06]
+  result: meets
+- id: C-09
+  source: ASD Essential Eight maturity model (last reviewed 27 Nov 2023), Maturity Level One, user application hardening
+  rule: Browsers do not process Java or web advertisements from the internet, users cannot change browser security settings, and Internet Explorer 11 is removed.
+  evidence_needed: Browser policy export and a check of a sample workstation.
+  result: not tested
+- id: C-10
+  source: ASD Essential Eight maturity model (last reviewed 27 Nov 2023), Maturity Level One, regular backups
+  rule: Backups of data, applications and settings are kept to match business criticality, and restoring them is tested as part of disaster recovery exercises.
+  evidence_needed: The backup schedule and retention settings, and the record of the last restore test.
+  evidence: [E-07]
+  result: gap
+- id: C-11
+  source: ASD Essential Eight maturity model (last reviewed 27 Nov 2023), Maturity Level One, regular backups
+  rule: Ordinary user accounts cannot change or delete backups, including other people's.
+  evidence_needed: Backup system permissions showing who can modify or delete backups.
+  evidence: [E-08]
+  result: meets

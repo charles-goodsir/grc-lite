@@ -4,7 +4,7 @@
   strength: strong
   strength_reason: Two independent system exports agree on the three accounts.
   criteria: [C-01]
-  condition: Three of nine leavers (33%) still had enabled accounts 30 to 45 days after leaving.
+  condition: Three of nine leavers (33%) still had enabled accounts 30 to 45 days after leaving (E-02).
   cause: The IT team is told about leavers by email and there is no ticket to track removal.
   consequence: Former staff could still sign in and reach company data.
   action: Add account removal to the HR leaver workflow and review the leavers list weekly.

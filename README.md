@@ -13,6 +13,7 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 .venv/bin/grc init my-assessment      # blank folder with commented templates
 .venv/bin/grc validate my-assessment  # exit 1 and every problem listed if invalid
 .venv/bin/grc validate data/example   # a fictional worked example
+.venv/bin/grc validate data/essential-eight   # a fictional Essential Eight assessment
 .venv/bin/grc report data/example -o report.md  # Markdown report (omit -o to print)
 .venv/bin/grc import-notes notes.md my-assessment  # convert a notes-tool export, then validate
 .venv/bin/grc collect leavers my-assessment --hr leavers.csv --users entra-users.json
@@ -114,9 +115,10 @@ src/grc_lite/
     sources.py       reads Graph JSON, users CSV and the HR leavers CSV
     graph.py         read-only Microsoft Graph client on the standard library
     record.py        appends the evidence entry and writes the private detail file
-tests/               360+ tests, including a golden-file test of the example report and a check that the page code never parses HTML from a string
+tests/               370+ tests, including a golden-file test of the example report and a check that the page code never parses HTML from a string
 data/example/        a fictional worked example
-docs/                the grading file format
+data/essential-eight/  a fictional Essential Eight assessment at Maturity Level One (see docs/essential-eight.md)
+docs/                the grading file format, the Essential Eight notes, the live test runbook
 ```
 Dependencies are Pydantic, PyYAML, Typer, FastAPI and uvicorn. Excel export needs the optional `openpyxl`; the tests also use `httpx`. Everything else is the standard library.
 

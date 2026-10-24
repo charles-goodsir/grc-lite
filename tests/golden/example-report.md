@@ -44,7 +44,7 @@ Generated 2026-03-10 | risk scale 1-3
 | Field | Detail |
 |---|---|
 | Criteria | C-01 |
-| Condition | Three of nine leavers (33%) still had enabled accounts 30 to 45 days after leaving. |
+| Condition | Three of nine leavers (33%) still had enabled accounts 30 to 45 days after leaving (E-02). |
 | Cause | The IT team is told about leavers by email and there is no ticket to track removal. |
 | Consequence | Former staff could still sign in and reach company data. |
 | Action | Add account removal to the HR leaver workflow and review the leavers list weekly. |
