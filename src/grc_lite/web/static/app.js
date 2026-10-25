@@ -7,6 +7,7 @@ import { coverageTab } from "./coverage.js";
 import { exportTab } from "./export.js";
 import { gradingTab } from "./grading.js";
 import { initLayout } from "./layout.js";
+import { initPomodoro } from "./pomodoro.js";
 import { progressTab } from "./progress.js";
 import { drawStepper } from "./stepper.js";
 import { KINDS, LABELS, loadCoach, on, problemsTab, recordsTab, reportTab, store } from "./records.js";
@@ -257,6 +258,7 @@ async function start() {
     }
   }
   initLayout();
+  initPomodoro();
   showTab("notes");
   $("filter").addEventListener("input", drawFiles);
   addEventListener("keydown", (e) => {

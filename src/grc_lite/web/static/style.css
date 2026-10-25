@@ -27,6 +27,8 @@ body { background: var(--bg); color: var(--ink); font: var(--fs-base)/1.55 var(-
 #topbar .spacer { flex: 1; }
 #level-name { font-size: var(--fs-lg); }
 #topbar button { padding: 3px 10px; }
+#pomodoro { display: flex; align-items: center; gap: 6px; }
+.pomo-face { font: 13px var(--mono); min-width: 9ch; text-align: right; }
 #app { display: grid; grid-template-columns: var(--side, clamp(200px, 20vw, 260px)) 6px minmax(0, 1fr) 6px var(--right, clamp(340px, 30vw, 560px)); min-height: 0; }
 /* Each panel keeps its own column even when a neighbour is hidden. Without this, a hidden (display:none)
    panel drops out of the grid and the others slide into the wrong columns. */
