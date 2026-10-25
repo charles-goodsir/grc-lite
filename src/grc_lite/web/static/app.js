@@ -31,16 +31,16 @@ function drawFiles() {
 
 const today = () => new Date().toLocaleDateString("sv-SE"); // local date as YYYY-MM-DD
 
-async function addEvidence(fields) {
+async function addRecord(kind, fields) {
   if (store.locked) { alert("This level is submitted and locked."); return; }
   try {
-    const made = await api("/api/records/evidence", { method: "POST", body: JSON.stringify({ fields }) });
+    const made = await api(`/api/records/${kind}`, { method: "POST", body: JSON.stringify({ fields }) });
     store.problems = made.problems;
-    store.evidence.push(made.record);
+    store[kind].push(made.record);
     problemCount();
-    await showTab("evidence", made.record.id);
+    await showTab(kind, made.record.id);
   } catch (e) {
-    alert("Could not add the evidence: " + e.message);
+    alert(`Could not add the ${kind}: ` + e.message);
   }
 }
 
@@ -51,13 +51,16 @@ function selectedText() {
 }
 
 function viewToolbar(path, kind) {
-  const button = h("button", { disabled: "", onmousedown: (e) => e.preventDefault(), onclick: () => {
+  const make = (label, add) => h("button", { disabled: "", onmousedown: (e) => e.preventDefault(), onclick: () => {
     const text = selectedText();
-    if (text) addEvidence({ date: today(), source: path, type: kind === "csv" ? "system" : "document", shows: `"${text}"` });
-  } }, "Add selected text as evidence");
-  const update = () => { button.disabled = !selectedText() || store.locked; };
+    if (text) add(text);
+  } }, label);
+  const evidence = make("Add selected text as evidence", (text) =>
+    addRecord("evidence", { date: today(), source: path, type: kind === "csv" ? "system" : "document", shows: `"${text}"` }));
+  const criterion = make("Add selected text as a criterion", (text) => addRecord("criteria", { source: path, rule: text }));
+  const update = () => { evidence.disabled = criterion.disabled = !selectedText() || store.locked; };
   document.addEventListener("selectionchange", update);
-  return h("div", { class: "viewbar" }, button, h("span", { class: "count" }, "Select text in the file, then add it as an evidence entry."));
+  return h("div", { class: "viewbar" }, evidence, criterion, h("span", { class: "count" }, "Select text in the file, then add it as evidence or as a rule to test."));
 }
 
 async function openFile(path) {
@@ -68,7 +71,7 @@ async function openFile(path) {
   try {
     const file = await api("/api/file?path=" + encodeURIComponent(path));
     const content = file.kind === "md" ? renderMarkdown(file.text)
-      : file.kind === "csv" ? renderCsv(file.text, { onCite: ({ query, shown, total }) => addEvidence({
+      : file.kind === "csv" ? renderCsv(file.text, { onCite: ({ query, shown, total }) => addRecord("evidence", {
         date: today(), source: path, type: "system",
         shows: query ? `${shown} of ${total} rows in ${path} contain "${query}".` : `${total} rows in ${path}.`,
         reliability: "Counted in the study app from the file as given." }) })

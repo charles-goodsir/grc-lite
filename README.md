@@ -35,7 +35,7 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 - **Search** across the files you can see, your notes and your records.
 - **Coverage:** where the assessment is thin: rules with no evidence or not tested, gaps no live finding covers, selected findings on weaker evidence, undecided candidates, evidence nothing uses, and requests still waiting, with a rules-by-evidence grid.
 - **Check:** a pre-submit checklist and a finding coach. It checks that every rule has a result, every candidate is decided, every gap has a finding, selected findings pass the coach, the slots are used, can't-test rules have requests, and evidence has a reliability note. The coach flags a missing Cause line, a condition with no number or no evidence ID, evidence that is not in your log, a likelihood that contradicts its own reason, a finding linked to a rule marked meets, and selected findings on weaker evidence. Reminders from the mistakes you tagged in earlier gradings come first. These catch incomplete or inconsistent work, not wrong conclusions.
-- **Cite this view** (on a CSV) records the filter and the row count as an evidence entry, so "5 of 31 rows" comes from a saved count. **Add selected text as evidence** quotes what you highlighted, with its source.
+- **Cite this view** (on a CSV) records the filter and the row count as an evidence entry, so "5 of 31 rows" comes from a saved count. **Add selected text as evidence** quotes what you highlighted, with its source. **Add selected text as a criterion** turns a highlighted rule into a draft criterion with the file as its source.
 - **Report:** the Markdown report, built live from what you logged.
 
 **Finishing and learning from a level**
