@@ -268,7 +268,17 @@ function card(kind, record) {
   const state = { ...record };
   const badge = h("span", { class: "badge-line" });
   const missing = h("div", { class: "missing" });
-  const del = h("button", { class: "danger", onclick: () => remove() }, "Delete");
+  // Two clicks: the first arms the button for a few seconds, the second deletes.
+  let armTimer = null;
+  const del = h("button", { class: "danger", onclick: () => {
+    if (!armTimer) {
+      del.textContent = "Really delete?";
+      armTimer = setTimeout(() => { del.textContent = "Delete"; armTimer = null; }, 4000);
+      return;
+    }
+    clearTimeout(armTimer);
+    remove();
+  } }, "Delete");
   del.hidden = store.locked;
   const graded = graderNotes(kind, record.id).map((n) =>
     h("div", { class: "grader" }, h("strong", {}, `Grader${n.key_rating ? " (key: " + n.key_rating + ")" : ""}: `), n.note));
@@ -312,7 +322,6 @@ function card(kind, record) {
   }
 
   async function remove() {
-    if (!confirm(`Delete ${record.id}? Its number will not be reused.`)) return;
     save.cancel();
     try {
       const result = await api(`/api/records/${kind}/${record.id}`, { method: "DELETE" });
