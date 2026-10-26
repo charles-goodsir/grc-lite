@@ -29,6 +29,8 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 - A **level stepper** above the tabs follows the playbook: read the scope, pull out the rules, test them, log what's missing, write findings, submit and review. It shows numbered dots with the current step named, ticks steps from what you have logged, and hovering a step shows what it means. Each step takes you to the right place.
 
 **Working through a level**
+- A **Next up** line under the stepper says what to do next (an untested rule, a gap with no finding, an undecided candidate, then problems) and takes you there.
+- Record cards start collapsed to one line (ID, result, the start of the text), with Open all and Close all. Criteria can be filtered by result, and evidence to the items not linked to a rule.
 - **Notes** for the open file.
 - **Criteria, Evidence, Findings, Requests, Risks:** forms with the notes tool's fields. Evidence and criteria are picked from lists, findings show a live rating and what a selected finding still lacks, and the scale (1-3 or 1-5) and slots are set on the Findings tab. A **?** beside the main fields shows a short reminder from the playbook.
 - **Problems:** everything `grc validate` would flag, each a link to its record. Drafts are allowed and show up here until complete.

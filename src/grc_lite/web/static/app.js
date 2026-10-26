@@ -7,10 +7,11 @@ import { coverageTab } from "./coverage.js";
 import { exportTab } from "./export.js";
 import { gradingTab } from "./grading.js";
 import { initLayout } from "./layout.js";
+import { drawNextUp } from "./nextup.js";
 import { initPomodoro } from "./pomodoro.js";
 import { progressTab } from "./progress.js";
 import { drawStepper } from "./stepper.js";
-import { KINDS, LABELS, loadCoach, on, problemsTab, recordsTab, reportTab, store } from "./records.js";
+import { KINDS, LABELS, expand, loadCoach, on, problemsTab, recordsTab, reportTab, store } from "./records.js";
 
 // Everything shown from a file is built with DOM text nodes, never innerHTML,
 // so a hostile line in a data-room file cannot run script in the page.
@@ -180,6 +181,7 @@ function showGroup(name) {
 }
 
 async function showTab(id, focusId) {
+  if (focusId) expand(focusId);
   activeTab = id;
   lastInGroup[groupOf(id)] = id;
   showGroup(groupOf(id));
@@ -205,6 +207,7 @@ function refreshStepper() {
     openScope: () => { const path = scopePath(); if (path) openFile(path); },
     openRecord: (kind) => showTab(kind),
   });
+  drawNextUp(nav);
 }
 
 function reviewBadge() {
