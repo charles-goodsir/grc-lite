@@ -210,3 +210,5 @@ td .chip { margin-left: 6px; }
 .cardtoggle { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; text-align: left; font: inherit; font-weight: 600; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; }
 .cardtoggle .caret { color: var(--muted); width: 1em; flex: none; }
 .cardtoggle .preview { font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.linkrow { font-size: 12.5px; margin: 0 0 8px; display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: baseline; }
+.linkrow .none, .linkrow .linktext { color: var(--muted); }
