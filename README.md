@@ -31,6 +31,7 @@ uv venv --python 3.14 && uv pip install -e '.[dev]'
 **Working through a level**
 - A **Next up** line under the stepper says what to do next (an untested rule, a gap with no finding, an undecided candidate, then problems) and takes you there.
 - Record cards start collapsed to one line (ID, result, the start of the text), with Open all and Close all. Criteria can be filtered by result, and evidence to the items not linked to a rule.
+- Evidence and rules are linked from both sides. A rule card lists its linked evidence, and an evidence card has a "Supports these rules" checklist and says when it supports nothing. **Split** on a rule copies it into a new card so a rule with several parts can be tested one part at a time.
 - **Notes** for the open file.
 - **Criteria, Evidence, Findings, Requests, Risks:** forms with the notes tool's fields. Evidence and criteria are picked from lists, findings show a live rating and what a selected finding still lacks, and the scale (1-3 or 1-5) and slots are set on the Findings tab. A **?** beside the main fields shows a short reminder from the playbook.
 - **Problems:** everything `grc validate` would flag, each a link to its record. Drafts are allowed and show up here until complete.

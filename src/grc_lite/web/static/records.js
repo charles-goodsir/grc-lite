@@ -265,6 +265,69 @@ function control(kind, record, [key, label, type], state, changed) {
   return wrap;
 }
 
+// ---- evidence <-> rule links, shown from both sides ----
+
+const brief = (text, n = 50) => (text.length > n ? text.slice(0, n - 1) + "…" : text);
+
+// A link lives on the criterion (its evidence list), so linking from an evidence card edits that criterion.
+async function setLink(criterion, evidenceId, on) {
+  const chosen = new Set(criterion.evidence || []);
+  on ? chosen.add(evidenceId) : chosen.delete(evidenceId);
+  const next = { ...criterion, evidence: [...chosen].sort() };
+  const fields = Object.fromEntries(Object.entries(next).filter(([k]) => k !== "id"));
+  const result = await api(`/api/records/criteria/${criterion.id}`, { method: "PUT", body: JSON.stringify({ fields }) });
+  store.problems = result.problems;
+  store.criteria = store.criteria.map((c) => (c.id === criterion.id ? next : c));
+  listeners.problems();
+  loadCoach().catch(() => {});
+}
+
+function chips(items, kind) { // [{id, label}] as buttons that open the record
+  return items.map((i) => h("button", { type: "button", class: "idlink", title: i.label, onclick: () => listeners.goto(kind, i.id) }, i.id));
+}
+
+// "Evidence: E-01 leaver list..." under a rule, "Supports: C-01 C-03" under evidence
+function linkRow(kind, state) {
+  const row = h("div", { class: "linkrow" });
+  function draw() {
+    row.replaceChildren();
+    if (kind === "criteria") {
+      const items = (state.evidence || []).map((id) => {
+        const e = store.evidence.find((x) => x.id === id);
+        return { id, label: `${id} ${brief(e?.shows || "")}` };
+      });
+      row.append(h("strong", {}, "Evidence: "));
+      if (!items.length) row.append(h("span", { class: "none" }, "none linked yet"));
+      for (const i of items) row.append(h("span", {}, ...chips([i], "evidence"), h("span", { class: "linktext" }, ` ${i.label.slice(i.id.length)}`)));
+    }
+  }
+  draw();
+  return { row, draw };
+}
+
+function supportRow(record) {
+  const wrap = h("div", { class: "field" }, h("label", {}, "Supports these rules"));
+  const box = h("div", { class: "refs", role: "group", "aria-label": "Supports these rules" });
+  const note = h("div", { class: "missing" });
+  const supports = () => store.criteria.filter((c) => (c.evidence || []).includes(record.id));
+  const refreshNote = () => { note.textContent = !supports().length && !isLinked(record.id) ? "Not linked to any rule yet." : ""; };
+  if (!store.criteria.length) box.append(h("span", { class: "empty" }, "No criteria yet."));
+  for (const c of store.criteria) {
+    const input = h("input", { type: "checkbox" });
+    input.checked = (c.evidence || []).includes(record.id);
+    input.disabled = store.locked;
+    input.addEventListener("change", async () => {
+      const current = store.criteria.find((x) => x.id === c.id);
+      try { await setLink(current, record.id, input.checked); refreshNote(); setStatus("Saved"); }
+      catch (e) { input.checked = !input.checked; setStatus("NOT SAVED: " + e.message, true); }
+    });
+    box.append(h("label", { class: "ref" }, input, optionLabel("criteria", c)));
+  }
+  refreshNote();
+  wrap.append(box, note);
+  return wrap;
+}
+
 // ---- one record card ----
 
 function card(kind, record) {
@@ -284,14 +347,28 @@ function card(kind, record) {
     remove();
   } }, "Delete");
   del.hidden = store.locked;
+  const split = kind === "criteria" ? h("button", { type: "button", title: "Copy this rule so each card can hold one part of it", onclick: async () => {
+    try {
+      const made = await api("/api/records/criteria", { method: "POST", body: JSON.stringify({ fields: { source: state.source || "", rule: state.rule || "" } }) });
+      store.problems = made.problems;
+      store.criteria.push(made.record);
+      listeners.problems();
+      loadCoach().catch(() => {});
+      listeners.rerender(made.record.id);
+    } catch (e) {
+      setStatus("NOT ADDED: " + e.message, true);
+    }
+  } }, "Split") : "";
+  if (split) split.hidden = store.locked;
+  const links = kind === "criteria" ? linkRow(kind, state) : null;
   const graded = graderNotes(kind, record.id).map((n) =>
     h("div", { class: "grader" }, h("strong", {}, `Grader${n.key_rating ? " (key: " + n.key_rating + ")" : ""}: `), n.note));
   const coachBox = h("div", { class: "coachbox" });
   const preview = h("span", { class: "preview" });
   const caret = h("span", { class: "caret", "aria-hidden": "true" });
   const toggle = h("button", { type: "button", class: "cardtoggle", onclick: () => setCollapsed(!collapsed) }, caret, badge, preview);
-  const body = h("div", { class: "cardbody" }, missing, coachBox, ...graded);
-  const root = h("div", { class: "card", id: `rec-${record.id}` }, h("h4", {}, toggle, del), body);
+  const body = h("div", { class: "cardbody" }, missing, coachBox, ...graded, links ? links.row : "");
+  const root = h("div", { class: "card", id: `rec-${record.id}` }, h("h4", {}, toggle, split, del), body);
   let collapsed = !open.has(record.id);
 
   function setCollapsed(value) {
@@ -315,6 +392,7 @@ function card(kind, record) {
     badge.textContent = `${record.id}${form.badge(state) ? "  ·  " + form.badge(state) : ""}`;
     const m = missingFor(record.id);
     missing.textContent = m.length ? "To fix: " + m.join("; ") : "";
+    if (links) links.draw();
     const text = state.title || state.rule || state.shows || state.what || "";
     preview.textContent = collapsed ? ` ${m.length ? "⚠ " : ""}${text.slice(0, 80)}` : "";
   }
@@ -363,6 +441,7 @@ function card(kind, record) {
     const input = row.querySelector("textarea");
     if (input) requestAnimationFrame(() => grow(input));
   }
+  if (kind === "evidence") body.append(supportRow(record));
   setCollapsed(collapsed);
   return root;
 }
