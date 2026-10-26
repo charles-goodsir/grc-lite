@@ -202,3 +202,11 @@ td .chip { margin-left: 6px; }
 .trend .line { fill: none; stroke: var(--accent); stroke-width: 2; }
 .trend .dot { fill: var(--accent); }
 .trend text { fill: var(--muted); font-size: 9px; }
+#nextup { display: flex; align-items: baseline; gap: 8px; padding: 6px 10px; margin: 6px 8px 0; background: var(--accent-soft); border-left: 3px solid var(--accent); border-radius: 0 4px 4px 0; font-size: 13px; }
+#nextup .nu-label { font-weight: 700; color: var(--accent); white-space: nowrap; }
+#nextup .nu-text { text-align: left; font: inherit; background: none; border: 0; padding: 0; color: var(--ink); }
+#nextup button.nu-text { cursor: pointer; text-decoration: underline; }
+.card h4 { flex-wrap: nowrap; }
+.cardtoggle { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 6px; text-align: left; font: inherit; font-weight: 600; background: none; border: 0; padding: 0; color: inherit; cursor: pointer; }
+.cardtoggle .caret { color: var(--muted); width: 1em; flex: none; }
+.cardtoggle .preview { font-weight: 400; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

@@ -9,6 +9,10 @@ export const store = { coach: { checks: [], reminders: [], findings: {} }, gradi
 let listeners = { problems: () => {}, goto: () => {}, rerender: () => {}, locked: () => {}, coach: () => {} };
 export const on = (handlers) => { listeners = { ...listeners, ...handlers }; };
 
+// Cards start collapsed to one line. The ones you open stay open when a tab redraws.
+const open = new Set();
+export const expand = (id) => open.add(id);
+
 export async function loadRecords() {
   Object.assign(store, await api("/api/records"));
   store.grading = await api("/api/grading");
@@ -56,7 +60,7 @@ const FORMS = {
     ],
     badge: (r) => `${r.result || "not tested"}`,
     tone: (r) => ({ meets: "meets", gap: "gap", "can't test": "cant" })[r.result] || "",
-    summary: () => `${store.criteria.length} rules: ` + RESULTS.map((o) => `${store.criteria.filter((r) => (r.result || "not tested") === o).length} ${o}`).join(", "),
+    summary: () => `${store.criteria.filter((r) => (r.result || "not tested") !== "not tested").length} of ${store.criteria.length} rules tested: ` + RESULTS.map((o) => `${store.criteria.filter((r) => (r.result || "not tested") === o).length} ${o}`).join(", "),
   },
   evidence: {
     label: "Evidence", add: "+ Add evidence",
@@ -283,7 +287,22 @@ function card(kind, record) {
   const graded = graderNotes(kind, record.id).map((n) =>
     h("div", { class: "grader" }, h("strong", {}, `Grader${n.key_rating ? " (key: " + n.key_rating + ")" : ""}: `), n.note));
   const coachBox = h("div", { class: "coachbox" });
-  const root = h("div", { class: "card", id: `rec-${record.id}` }, h("h4", {}, badge, del), missing, coachBox, ...graded);
+  const preview = h("span", { class: "preview" });
+  const caret = h("span", { class: "caret", "aria-hidden": "true" });
+  const toggle = h("button", { type: "button", class: "cardtoggle", onclick: () => setCollapsed(!collapsed) }, caret, badge, preview);
+  const body = h("div", { class: "cardbody" }, missing, coachBox, ...graded);
+  const root = h("div", { class: "card", id: `rec-${record.id}` }, h("h4", {}, toggle, del), body);
+  let collapsed = !open.has(record.id);
+
+  function setCollapsed(value) {
+    collapsed = value;
+    value ? open.delete(record.id) : open.add(record.id);
+    body.hidden = value;
+    caret.textContent = value ? "▸" : "▾";
+    toggle.setAttribute("aria-expanded", String(!value));
+    refresh();
+    if (!value) body.querySelectorAll("textarea").forEach(grow); // they could not size themselves while hidden
+  }
 
   function showCoach() {
     const issues = kind === "findings" ? store.coach.findings[record.id] || [] : [];
@@ -296,6 +315,8 @@ function card(kind, record) {
     badge.textContent = `${record.id}${form.badge(state) ? "  ·  " + form.badge(state) : ""}`;
     const m = missingFor(record.id);
     missing.textContent = m.length ? "To fix: " + m.join("; ") : "";
+    const text = state.title || state.rule || state.shows || state.what || "";
+    preview.textContent = collapsed ? ` ${m.length ? "⚠ " : ""}${text.slice(0, 80)}` : "";
   }
 
   const save = debounce(async () => {
@@ -338,11 +359,11 @@ function card(kind, record) {
   for (const field of form.fields) {
     if (form.core && state.status !== "selected" && !form.core.includes(field[0])) continue;
     const row = control(kind, record, field, state, changed);
-    root.append(row);
+    body.append(row);
     const input = row.querySelector("textarea");
     if (input) requestAnimationFrame(() => grow(input));
   }
-  refresh();
+  setCollapsed(collapsed);
   return root;
 }
 
@@ -369,19 +390,38 @@ export async function recordsTab(kind) {
 
   let filter = "all";
   if (kind === "findings" || kind === "risks") top.append(scaleRow(kind === "findings" ? (v) => { filter = v; drawCards(); } : null));
+  if (kind === "criteria" || kind === "evidence") top.append(filterRow(kind, (v) => { filter = v; drawCards(); }, () => drawCards(true), () => drawCards(false)));
+  let allOpen = null; // set by Open all / Close all, to apply to the cards that are shown
   const list = h("div", { class: "cards" });
-  function drawCards() {
+  function drawCards(openAll) {
+    if (openAll !== undefined) allOpen = openAll;
     list.replaceChildren();
     for (const record of store[kind]) {
       if (kind === "findings" && filter !== "all" && record.status !== filter) continue;
+      if (kind === "criteria" && filter !== "all" && (record.result || "not tested") !== filter) continue;
+      if (kind === "evidence" && filter === "unlinked" && isLinked(record.id)) continue;
+      if (allOpen !== null) allOpen ? open.add(record.id) : open.delete(record.id);
       list.append(card(kind, record));
     }
+    allOpen = null;
     if (!store[kind].length) list.append(h("p", { class: "empty pad" }, `No ${form.label.toLowerCase()} yet. Use the button above to add one.`));
     summary.textContent = form.summary();
   }
   drawCards();
   statusEl = h("div", { class: "status" }, "Changes save as you type.");
   return [h("div", { class: "scrollpane" }, top, list), statusEl];
+}
+
+const isLinked = (evidenceId) =>
+  store.criteria.some((c) => (c.evidence || []).includes(evidenceId)) || store.requests.some((r) => r.evidence === evidenceId);
+
+function filterRow(kind, onFilter, openAll, closeAll) {
+  const options = kind === "criteria"
+    ? [["all", "Show all"], ...RESULTS.map((r) => [r, r === "not tested" ? "Only not tested" : "Only " + r])]
+    : [["all", "Show all"], ["unlinked", "Only not linked to a rule"]];
+  const f = h("select", { "aria-label": "Filter " + kind }, options.map(([v, label]) => h("option", { value: v }, label)));
+  f.addEventListener("change", () => onFilter(f.value));
+  return h("div", { class: "row" }, f, h("span", {}, h("button", { type: "button", onclick: openAll }, "Open all"), " ", h("button", { type: "button", onclick: closeAll }, "Close all")));
 }
 
 function scaleRow(onFilter) {
